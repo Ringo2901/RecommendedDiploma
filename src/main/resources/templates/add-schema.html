@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить схему</title>
+</head>
+<body>
+<h1>Добавить новую схему</h1>
+<form action="/admin/schema/add" method="post">
+    <label>Тип сущности:</label>
+    <input type="text" name="entityType" required><br>
+
+    <label>Название поля:</label>
+    <input type="text" name="fields['название_поля']">
+
+    <label>Вес:</label>
+    <input type="number" step="0.01" name="fields['название_поля_вес']"><br>
+
+    <button type="submit">Добавить</button>
+</form>
+<a href="/admin/schema">Вернуться</a>
+</body>
+</html>

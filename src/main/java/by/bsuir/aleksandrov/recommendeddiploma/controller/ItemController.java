@@ -2,6 +2,7 @@ package by.bsuir.aleksandrov.recommendeddiploma.controller;
 
 import by.bsuir.aleksandrov.recommendeddiploma.model.Item;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.ItemRepository;
+import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,19 +15,15 @@ import java.util.Optional;
 public class ItemController {
 
     private final ItemRepository itemRepository;
+    private final SchemaValidator schemaValidator;
 
-    public ItemController(ItemRepository itemRepository) {
+    public ItemController(ItemRepository itemRepository, SchemaValidator schemaValidator) {
         this.itemRepository = itemRepository;
+        this.schemaValidator = schemaValidator;
     }
-
     @PostMapping("/add")
-    public ResponseEntity<Item> addItem(@RequestBody Map<String, Object> request) {
-        Item item = new Item();
-        item.setItemId((String) request.get("itemId"));
-        item.setData((Map<String, Object>) request.get("data"));
-
-        itemRepository.save(item);
-        return ResponseEntity.ok(item);
+    public ResponseEntity<?> createItem(@RequestBody Item item) {
+        return validateAndSaveItem(item);
     }
 
     @GetMapping("/{id}")
@@ -36,16 +33,12 @@ public class ItemController {
     }
 
     @PostMapping("/bulk-add")
-    public ResponseEntity<List<Item>> addItems(@RequestBody List<Map<String, Object>> request) {
-        List<Item> items = request.stream().map(data -> {
-            Item item = new Item();
-            item.setItemId((String) data.get("itemId"));
-            item.setData((Map<String, Object>) data.get("data"));
-            return item;
-        }).toList();
-
-        itemRepository.saveAll(items);
-        return ResponseEntity.ok(items);
+    public ResponseEntity<?> createItems(@RequestBody List<Item> items) {
+        for (Item item : items) {
+            ResponseEntity<?> response = validateAndSaveItem(item);
+            if (!response.getStatusCode().is2xxSuccessful()) return response;
+        }
+        return ResponseEntity.ok(itemRepository.saveAll(items));
     }
 
     @GetMapping("/all")
@@ -76,6 +69,13 @@ public class ItemController {
     public ResponseEntity<Void> clearItems() {
         itemRepository.deleteAll();
         return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<?> validateAndSaveItem(Item item) {
+        if (!schemaValidator.validate("item", item.getData())) {
+            return ResponseEntity.badRequest().body("Ошибка: данные товара не соответствуют схеме!");
+        }
+        return ResponseEntity.ok(itemRepository.save(item));
     }
 }
 

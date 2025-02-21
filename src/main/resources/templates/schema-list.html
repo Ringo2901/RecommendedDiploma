@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список схем</title>
+</head>
+<body>
+<h1>Список схем</h1>
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Тип</th>
+        <th>Поля и веса</th>
+        <th>Действия</th>
+    </tr>
+    <tr th:each="schema : ${schemas}">
+        <td th:text="${schema.id}"></td>
+        <td th:text="${schema.entityType}"></td>
+        <td>
+            <ul>
+                <li th:each="entry : ${schema.fields.entrySet()}"
+                    th:text="${entry.key + ': ' + entry.value}"></li>
+            </ul>
+        </td>
+        <td>
+            <a th:href="@{/admin/schema/delete/{id}(id=${schema.id})}">Удалить</a>
+        </td>
+    </tr>
+</table>
+<a href="/admin/schema/add">Добавить новую схему</a>
+</body>
+</html>

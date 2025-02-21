@@ -2,7 +2,9 @@ package by.bsuir.aleksandrov.recommendeddiploma.controller;
 
 
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;
+import by.bsuir.aleksandrov.recommendeddiploma.repository.SchemaRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
+import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,19 +17,16 @@ import java.util.Optional;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final SchemaValidator schemaValidator;
 
-    public UserController(UserRepository userRepository) {
+    public UserController(UserRepository userRepository, SchemaValidator schemaValidator) {
         this.userRepository = userRepository;
+        this.schemaValidator = schemaValidator;
     }
 
     @PostMapping("/add")
-    public ResponseEntity<User> addUser(@RequestBody Map<String, Object> request) {
-        User user = new User();
-        user.setUserId((String) request.get("userId"));
-        user.setData((Map<String, Object>) request.get("data"));
-
-        userRepository.save(user);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        return validateAndSaveUser(user);
     }
 
     @GetMapping("/{id}")
@@ -37,16 +36,12 @@ public class UserController {
     }
 
     @PostMapping("/bulk-add")
-    public ResponseEntity<List<User>> addUsers(@RequestBody List<Map<String, Object>> request) {
-        List<User> users = request.stream().map(data -> {
-            User user = new User();
-            user.setUserId((String) data.get("userId"));
-            user.setData((Map<String, Object>) data.get("data"));
-            return user;
-        }).toList();
-
-        userRepository.saveAll(users);
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> createUsers(@RequestBody List<User> users) {
+        for (User user : users) {
+            ResponseEntity<?> response = validateAndSaveUser(user);
+            if (!response.getStatusCode().is2xxSuccessful()) return response;
+        }
+        return ResponseEntity.ok(userRepository.saveAll(users));
     }
 
     @GetMapping("/all")
@@ -77,5 +72,12 @@ public class UserController {
     public ResponseEntity<Void> clearUsers() {
         userRepository.deleteAll();
         return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<?> validateAndSaveUser(User user) {
+        if (!schemaValidator.validate("user", user.getData())) {
+            return ResponseEntity.badRequest().body("Ошибка: данные пользователя не соответствуют схеме!");
+        }
+        return ResponseEntity.ok(userRepository.save(user));
     }
 }
