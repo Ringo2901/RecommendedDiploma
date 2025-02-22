@@ -17,4 +17,9 @@ public class User {
     private String id;
     private String userId;
     private Map<String, Object> data;
+
+    public User(String userId, Map<String, Object> data) {
+        this.userId = userId;
+        this.data = data;
+    }
 }

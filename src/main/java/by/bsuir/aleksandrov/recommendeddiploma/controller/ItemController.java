@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/items")
@@ -21,6 +21,7 @@ public class ItemController {
         this.itemRepository = itemRepository;
         this.schemaValidator = schemaValidator;
     }
+
     @PostMapping("/add")
     public ResponseEntity<?> createItem(@RequestBody Item item) {
         return validateAndSaveItem(item);
@@ -34,11 +35,21 @@ public class ItemController {
 
     @PostMapping("/bulk-add")
     public ResponseEntity<?> createItems(@RequestBody List<Item> items) {
-        for (Item item : items) {
-            ResponseEntity<?> response = validateAndSaveItem(item);
-            if (!response.getStatusCode().is2xxSuccessful()) return response;
+        List<Item> validItems = items.stream()
+                .filter(item -> {
+                    boolean isValid = schemaValidator.validate("Item", item.getData());
+                    if (!isValid) {
+                        System.out.println("Пропущен элемент с itemId: " + item.getItemId() + " из-за несоответствия схеме.");
+                    }
+                    return isValid;
+                })
+                .collect(Collectors.toList());
+
+        if (validItems.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: ни один товар не соответствует схеме.");
         }
-        return ResponseEntity.ok(itemRepository.saveAll(items));
+
+        return ResponseEntity.ok(itemRepository.saveAll(validItems));
     }
 
     @GetMapping("/all")
@@ -73,9 +84,9 @@ public class ItemController {
 
     private ResponseEntity<?> validateAndSaveItem(Item item) {
         if (!schemaValidator.validate("item", item.getData())) {
+            System.out.println("Пропущен товар с itemId: " + item.getItemId() + " из-за несоответствия схеме.");
             return ResponseEntity.badRequest().body("Ошибка: данные товара не соответствуют схеме!");
         }
         return ResponseEntity.ok(itemRepository.save(item));
     }
 }
-

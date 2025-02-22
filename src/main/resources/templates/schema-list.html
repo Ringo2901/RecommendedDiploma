@@ -18,10 +18,11 @@
         <td th:text="${schema.entityType}"></td>
         <td>
             <ul>
-                <li th:each="entry : ${schema.fields.entrySet()}"
-                    th:text="${entry.key + ': ' + entry.value}"></li>
+                <li th:each="field : ${schema.fields}"
+                    th:text="${field.name + ': ' + field.weight}"></li>
             </ul>
         </td>
+
         <td>
             <a th:href="@{/admin/schema/delete/{id}(id=${schema.id})}">Удалить</a>
         </td>

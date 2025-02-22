@@ -1,16 +1,20 @@
 package by.bsuir.aleksandrov.recommendeddiploma.controller;
 
-
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;
-import by.bsuir.aleksandrov.recommendeddiploma.repository.SchemaRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -37,11 +41,21 @@ public class UserController {
 
     @PostMapping("/bulk-add")
     public ResponseEntity<?> createUsers(@RequestBody List<User> users) {
-        for (User user : users) {
-            ResponseEntity<?> response = validateAndSaveUser(user);
-            if (!response.getStatusCode().is2xxSuccessful()) return response;
+        List<User> validUsers = users.stream()
+                .filter(user -> {
+                    boolean isValid = schemaValidator.validate("User", user.getData());
+                    if (!isValid) {
+                        System.out.println("Пропущен пользователь с userId: " + user.getUserId() + " из-за несоответствия схеме.");
+                    }
+                    return isValid;
+                })
+                .collect(Collectors.toList());
+
+        if (validUsers.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: ни один пользователь не соответствует схеме.");
         }
-        return ResponseEntity.ok(userRepository.saveAll(users));
+
+        return ResponseEntity.ok(userRepository.saveAll(validUsers));
     }
 
     @GetMapping("/all")
@@ -76,8 +90,57 @@ public class UserController {
 
     private ResponseEntity<?> validateAndSaveUser(User user) {
         if (!schemaValidator.validate("user", user.getData())) {
+            System.out.println("Пропущен пользователь с userId: " + user.getUserId() + " из-за несоответствия схеме.");
             return ResponseEntity.badRequest().body("Ошибка: данные пользователя не соответствуют схеме!");
         }
         return ResponseEntity.ok(userRepository.save(user));
+    }
+
+    @PostMapping("/upload-csv")
+    public ResponseEntity<?> uploadUsersFromCSV(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
+        }
+
+        List<User> users = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
+
+            for (CSVRecord record : csvParser) {
+                try {
+                    String userId = record.get("userId"); // Предполагается, что CSV содержит userId
+                    Map<String, Object> data = new HashMap<>();
+
+                    for (String header : record.toMap().keySet()) {
+                        if (!header.equals("userId")) {
+                            data.put(header, record.get(header));
+                        }
+                    }
+
+                    User user = new User(userId, data);
+
+                    if (!schemaValidator.validate("user", data)) {
+                        errors.add("Ошибка: Пользователь с userId=" + userId + " не соответствует схеме.");
+                        continue;
+                    }
+
+                    users.add(user);
+                } catch (Exception e) {
+                    errors.add("Ошибка при обработке записи: " + record.toString());
+                }
+            }
+
+            if (!errors.isEmpty()) {
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            userRepository.saveAll(users);
+            return ResponseEntity.ok("Файл успешно загружен. Добавлено пользователей: " + users.size());
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Ошибка при обработке файла: " + e.getMessage());
+        }
     }
 }
