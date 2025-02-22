@@ -34,12 +34,17 @@ public class SchemaValidator {
     }
 
     private boolean isTypeValid(Object value, String type) {
+        if (!(value instanceof String strValue)) {
+            return false;
+        }
+
         return switch (type) {
-            case "String" -> value instanceof String;
-            case "Integer" -> value instanceof Integer;
-            case "Boolean" -> value instanceof Boolean;
-            case "Double" -> value instanceof Double;
+            case "String" -> true;
+            case "Integer" -> strValue.matches("-?\\d+");
+            case "Boolean" -> strValue.equalsIgnoreCase("true") || strValue.equalsIgnoreCase("false");
+            case "Double" -> strValue.matches("-?\\d+(\\.\\d+)?");
             default -> false;
         };
     }
+
 }

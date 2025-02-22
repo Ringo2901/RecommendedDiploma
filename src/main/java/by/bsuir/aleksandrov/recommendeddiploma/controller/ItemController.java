@@ -3,11 +3,17 @@ package by.bsuir.aleksandrov.recommendeddiploma.controller;
 import by.bsuir.aleksandrov.recommendeddiploma.model.Item;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.ItemRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Optional;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -80,6 +86,54 @@ public class ItemController {
     public ResponseEntity<Void> clearItems() {
         itemRepository.deleteAll();
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/upload-csv")
+    public ResponseEntity<?> uploadItemsFromCSV(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
+        }
+
+        List<Item> items = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
+
+            for (CSVRecord record : csvParser) {
+                try {
+                    String itemId = record.get("itemId");
+                    Map<String, Object> data = new HashMap<>();
+
+                    for (String header : record.toMap().keySet()) {
+                        if (!header.equals("itemId")) {
+                            data.put(header, record.get(header));
+                        }
+                    }
+
+                    Item item = new Item(itemId, data);
+
+                    if (!schemaValidator.validate("Item", data)) {
+                        errors.add("Ошибка: Товар с itemId=" + itemId + " не соответствует схеме.");
+                        continue;
+                    }
+
+                    items.add(item);
+                } catch (Exception e) {
+                    errors.add("Ошибка при обработке записи: " + record.toString());
+                }
+            }
+
+            if (!errors.isEmpty()) {
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            itemRepository.saveAll(items);
+            return ResponseEntity.ok("Файл успешно загружен. Добавлено товаров: " + items.size());
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Ошибка при обработке файла: " + e.getMessage());
+        }
     }
 
     private ResponseEntity<?> validateAndSaveItem(Item item) {

@@ -10,6 +10,11 @@ public class AdminController {
     @GetMapping("/admin")
     public String adminPanel(Model model) {
         model.addAttribute("message", "Добро пожаловать в админ-панель!");
-        return "admin"; // ✅ Загружает templates/admin.html
+        return "admin";
+    }
+
+    @GetMapping("/admin/import")
+    public String importPage() {
+        return "admin-csv-import";
     }
 }

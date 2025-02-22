@@ -10,7 +10,11 @@ import java.util.Map;
 @Data
 public class Item {
     @Id
-    private String id;
     private String itemId;
     private Map<String, Object> data;
+
+    public Item(String itemId, Map<String, Object> data) {
+        this.itemId = itemId;
+        this.data = data;
+    }
 }

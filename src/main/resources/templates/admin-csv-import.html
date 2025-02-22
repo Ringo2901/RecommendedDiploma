@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Импорт CSV</title>
+</head>
+<body>
+<h1>Импорт данных из CSV</h1>
+
+<form id="upload-form" enctype="multipart/form-data">
+  <label>Выберите тип сущности:</label>
+  <select id="entityType">
+    <option value="User">User</option>
+    <option value="Item">Item</option>
+  </select>
+  <br><br>
+
+  <label>Выберите CSV файл:</label>
+  <input type="file" id="fileInput" accept=".csv" required>
+  <br><br>
+
+  <button type="button" onclick="uploadFile()">Загрузить</button>
+</form>
+
+<div id="message" style="color: red;"></div>
+
+<a href="/admin">Назад</a>
+
+<script>
+  function uploadFile() {
+    let fileInput = document.getElementById("fileInput");
+    let entityType = document.getElementById("entityType").value;
+    let messageDiv = document.getElementById("message");
+
+    if (!fileInput.files.length) {
+      messageDiv.innerText = "Ошибка: Выберите файл!";
+      return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    let url = entityType === "User" ? "/users/upload-csv" : "/items/upload-csv";
+
+    fetch(url, {
+      method: "POST",
+      body: formData
+    })
+            .then(response => response.text())
+            .then(data => {
+              messageDiv.innerText = data;
+              fileInput.value = "";
+            })
+            .catch(error => {
+              messageDiv.innerText = "Ошибка при загрузке: " + error;
+            });
+  }
+</script>
+
+</body>
+</html>

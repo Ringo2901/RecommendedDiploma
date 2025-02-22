@@ -121,7 +121,7 @@ public class UserController {
 
                     User user = new User(userId, data);
 
-                    if (!schemaValidator.validate("user", data)) {
+                    if (!schemaValidator.validate("User", data)) {
                         errors.add("Ошибка: Пользователь с userId=" + userId + " не соответствует схеме.");
                         continue;
                     }
