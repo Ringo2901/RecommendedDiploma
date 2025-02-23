@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Добавить схему</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/add-schema-style.css">
 </head>
 <body>
 
@@ -53,10 +53,10 @@
         div.classList.add("field-entry");
         div.innerHTML = `
             <label>Название поля:</label>
-            <input type="text" name="fields[\${fieldIndex}].name" required>
+            <input type="text" name="fields[${fieldIndex}].name" required>
 
             <label>Тип данных:</label>
-            <select name="fields[\${fieldIndex}].type">
+            <select name="fields[${fieldIndex}].type">
                 <option value="String">String</option>
                 <option value="Integer">Integer</option>
                 <option value="Boolean">Boolean</option>
@@ -64,7 +64,7 @@
             </select>
 
             <label>Вес:</label>
-            <input type="number" step="0.01" name="fields[\${fieldIndex}].weight" required>
+            <input type="number" step="0.01" name="fields[${fieldIndex}].weight" required>
             <button type="button" onclick="removeField(this)">Удалить</button>
         `;
         container.appendChild(div);
@@ -72,9 +72,11 @@
     }
 
     function removeField(button) {
-        button.parentElement.remove();
+        let fieldEntry = button.parentElement;
+        fieldEntry.remove();
     }
 </script>
+
 
 </body>
 </html>

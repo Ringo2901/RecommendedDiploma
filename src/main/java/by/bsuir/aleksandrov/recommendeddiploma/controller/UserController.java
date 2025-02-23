@@ -1,5 +1,6 @@
 package by.bsuir.aleksandrov.recommendeddiploma.controller;
 
+import by.bsuir.aleksandrov.recommendeddiploma.model.Preference;
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
@@ -139,6 +140,86 @@ public class UserController {
             userRepository.saveAll(users);
             return ResponseEntity.ok("Файл успешно загружен. Добавлено пользователей: " + users.size());
 
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Ошибка при обработке файла: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{userId}/preferences")
+    public ResponseEntity<?> addPreference(@PathVariable String userId, @RequestBody Preference preference) {
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: Пользователь не найден");
+        }
+
+        User user = userOptional.get();
+        user.getPreferences().add(preference);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Предпочтение добавлено");
+    }
+
+    @PostMapping("/{userId}/preferences/bulk-add")
+    public ResponseEntity<?> addPreferences(@PathVariable String userId, @RequestBody List<Preference> preferences) {
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: Пользователь не найден");
+        }
+
+        User user = userOptional.get();
+        user.getPreferences().addAll(preferences);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Предпочтения добавлены");
+    }
+
+    @PostMapping("/upload-preferences")
+    public ResponseEntity<?> uploadPreferencesFromCSV(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
+        }
+
+        List<String> errors = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
+
+            Map<String, List<Preference>> userPreferencesMap = new HashMap<>();
+
+            for (CSVRecord record : csvParser) {
+                try {
+                    String userId = record.get("userId");
+                    String itemId = record.get("itemId");
+                    double rating = Double.parseDouble(record.get("rating"));
+                    double minBound = Double.parseDouble(record.get("minBound"));
+                    double maxBound = Double.parseDouble(record.get("maxBound"));
+
+                    Preference preference = new Preference(itemId, rating, minBound, maxBound);
+                    userPreferencesMap.computeIfAbsent(userId, k -> new ArrayList<>()).add(preference);
+                } catch (Exception e) {
+                    errors.add("Ошибка при обработке строки: " + record.toString());
+                }
+            }
+
+            for (Map.Entry<String, List<Preference>> entry : userPreferencesMap.entrySet()) {
+                String userId = entry.getKey();
+                Optional<User> userOptional = userRepository.findById(userId);
+
+                if (userOptional.isPresent()) {
+                    User user = userOptional.get();
+                    user.getPreferences().addAll(entry.getValue());
+                    userRepository.save(user);
+                } else {
+                    errors.add("Ошибка: Пользователь с ID " + userId + " не найден.");
+                }
+            }
+
+            if (!errors.isEmpty()) {
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            return ResponseEntity.ok("Файл успешно загружен.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Ошибка при обработке файла: " + e.getMessage());
         }

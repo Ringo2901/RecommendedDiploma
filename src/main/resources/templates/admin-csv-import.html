@@ -3,44 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <title>Импорт CSV</title>
+  <link rel="stylesheet" href="/css/admin-csv-import-style.css">
 </head>
 <body>
-<h1>Импорт данных из CSV</h1>
 
-<form id="upload-form" enctype="multipart/form-data">
-  <label>Выберите тип сущности:</label>
-  <select id="entityType">
-    <option value="User">User</option>
-    <option value="Item">Item</option>
-  </select>
-  <br><br>
+<div class="form-container">
+  <h1>Импорт данных из CSV</h1>
 
-  <label>Выберите CSV файл:</label>
-  <input type="file" id="fileInput" accept=".csv" required>
-  <br><br>
+  <form id="upload-form" enctype="multipart/form-data">
+    <label>Выберите тип данных:</label>
+    <select id="dataType">
+      <option value="User">Пользователи</option>
+      <option value="Item">Товары</option>
+      <option value="Preference">Предпочтения</option>
+    </select>
 
-  <button type="button" onclick="uploadFile()">Загрузить</button>
-</form>
+    <label>Выберите CSV файл:</label>
+    <input type="file" id="fileInput" accept=".csv" required>
 
-<div id="message" style="color: red;"></div>
+    <button type="button" onclick="uploadFile()">Загрузить</button>
+  </form>
 
-<a href="/admin">Назад</a>
+  <div id="message"></div>
+
+  <div class="nav">
+    <a href="/admin">Назад</a>
+  </div>
+</div>
 
 <script>
   function uploadFile() {
     let fileInput = document.getElementById("fileInput");
-    let entityType = document.getElementById("entityType").value;
+    let dataType = document.getElementById("dataType").value;
     let messageDiv = document.getElementById("message");
 
     if (!fileInput.files.length) {
       messageDiv.innerText = "Ошибка: Выберите файл!";
+      messageDiv.className = "error";
       return;
     }
 
     let formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    let url = entityType === "User" ? "/users/upload-csv" : "/items/upload-csv";
+    let url;
+    if (dataType === "User") {
+      url = "/users/upload-csv";
+    } else if (dataType === "Item") {
+      url = "/items/upload-csv";
+    } else {
+      url = "/users/upload-preferences";
+    }
 
     fetch(url, {
       method: "POST",
@@ -49,10 +62,12 @@
             .then(response => response.text())
             .then(data => {
               messageDiv.innerText = data;
+              messageDiv.className = "success";
               fileInput.value = "";
             })
             .catch(error => {
               messageDiv.innerText = "Ошибка при загрузке: " + error;
+              messageDiv.className = "error";
             });
   }
 </script>
