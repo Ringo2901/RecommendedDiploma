@@ -208,6 +208,9 @@ public class UserController {
 
                 if (userOptional.isPresent()) {
                     User user = userOptional.get();
+                    if (user.getPreferences() == null) {
+                        user.setPreferences(new ArrayList<>());
+                    }
                     user.getPreferences().addAll(entry.getValue());
                     userRepository.save(user);
                 } else {

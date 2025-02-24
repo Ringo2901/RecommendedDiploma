@@ -12,4 +12,12 @@ public class Preference {
     private double rating;
     private double minBound;
     private double maxBound;
+
+    public boolean isLiked() {
+        return rating >= maxBound / 2 + 1;
+    }
+
+    public boolean isContained(String id){
+        return itemId.equals(id);
+    }
 }

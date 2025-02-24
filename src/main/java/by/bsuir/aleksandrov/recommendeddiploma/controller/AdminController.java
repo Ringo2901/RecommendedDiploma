@@ -17,4 +17,9 @@ public class AdminController {
     public String importPage() {
         return "admin-csv-import";
     }
+
+    @GetMapping("/admin/settings")
+    public String settingsPage() {
+        return "settings";
+    }
 }

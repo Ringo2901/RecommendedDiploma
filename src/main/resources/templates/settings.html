@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки рекомендаций</title>
+  <link rel="stylesheet" href="/css/admin-settings-style.css">
+</head>
+<body>
+<h1>Настройки системы рекомендаций</h1>
+
+<form id="recommendation-settings-form">
+  <label for="algorithm">Выберите алгоритм:</label>
+  <select id="algorithm" name="algorithm">
+    <option value="TF_IDF">TF-IDF</option>
+    <option value="SVD">SVD</option>
+    <option value="USER_BASED">User-Based</option>
+    <option value="CONTENT_BASED">Content-Based</option>
+  </select>
+
+  <div id="parameters-container">
+    <!-- Динамически загружаемые параметры -->
+  </div>
+
+  <button type="button" onclick="saveSettings()">Сохранить</button>
+</form>
+
+<p id="status-message"></p>
+
+<a href="/admin">Назад в админ-панель</a>
+
+<script>
+  async function loadSettings() {
+    try {
+      let response = await fetch('/admin/recommendation-settings');
+      if (response.ok) {
+        let settings = await response.json();
+        document.getElementById('algorithm').value = settings.algorithm;
+        updateParametersUI(settings.algorithm, settings.parameters);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки настроек:", error);
+    }
+  }
+
+  function updateParametersUI(algorithm, parameters = {}) {
+    let container = document.getElementById("parameters-container");
+    container.innerHTML = "";
+
+    if (algorithm === "SVD") {
+      container.innerHTML = `
+        <label>Количество факторов:</label>
+        <input type="number" id="numFactors" value="${parameters.numFactors || 50}" required>
+
+        <label>Число итераций:</label>
+        <input type="number" id="numIterations" value="${parameters.numIterations || 100}" required>
+      `;
+    } else if (algorithm === "USER_BASED") {
+      container.innerHTML = `
+        <label>Количество соседей:</label>
+        <input type="number" id="numNeighbors" value="${parameters.numNeighbors || 10}" required>
+      `;
+    } else if (algorithm === "CONTENT_BASED") {
+      container.innerHTML = `
+        <label>Коэффициент важности характеристик:</label>
+        <input type="number" step="0.01" id="featureWeight" value="${parameters.featureWeight || 1.0}" required>
+      `;
+    }
+  }
+
+  async function saveSettings() {
+    let algorithm = document.getElementById('algorithm').value;
+    let parameters = {};
+
+    if (algorithm === "SVD") {
+      parameters.numFactors = document.getElementById("numFactors").value;
+      parameters.numIterations = document.getElementById("numIterations").value;
+    } else if (algorithm === "USER_BASED") {
+      parameters.numNeighbors = document.getElementById("numNeighbors").value;
+    } else if (algorithm === "CONTENT_BASED") {
+      parameters.featureWeight = document.getElementById("featureWeight").value;
+    }
+
+    let settings = { algorithm, parameters };
+
+    try {
+      let response = await fetch('/admin/recommendation-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+
+      document.getElementById("status-message").innerText = await response.text();
+    } catch (error) {
+      console.error("Ошибка сохранения настроек:", error);
+    }
+  }
+
+  document.getElementById('algorithm').addEventListener('change', (event) => {
+    updateParametersUI(event.target.value);
+  });
+
+  loadSettings();
+</script>
+
+</body>
+</html>
