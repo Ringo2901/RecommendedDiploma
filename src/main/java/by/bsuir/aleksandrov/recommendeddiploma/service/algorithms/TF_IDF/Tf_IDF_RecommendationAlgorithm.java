@@ -83,4 +83,9 @@ public class Tf_IDF_RecommendationAlgorithm implements RecommendationAlgorithm {
 
         return topNKeys.subList(offset, endIndex);
     }
+
+    @Override
+    public double evaluateModel() {
+        return 0;
+    }
 }

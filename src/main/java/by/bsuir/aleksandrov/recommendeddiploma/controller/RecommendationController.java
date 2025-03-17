@@ -20,9 +20,10 @@ public class RecommendationController {
     public ResponseEntity<List<String>> getRecommendations(
             @RequestParam String userId,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
+            @RequestParam(defaultValue = "0") int offset) throws Exception{
 
         List<String> recommendations = recommendationService.getRecommendations(userId, limit, offset);
+        System.out.println(recommendationService.evaluate());
         return ResponseEntity.ok(recommendations);
     }
 }

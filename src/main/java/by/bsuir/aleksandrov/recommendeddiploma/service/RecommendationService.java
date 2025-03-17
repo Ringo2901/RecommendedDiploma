@@ -19,7 +19,7 @@ public class RecommendationService {
         this.algorithms = algorithms;
     }
 
-    public List<String> getRecommendations(String userId, int limit, int offset) {
+    public List<String> getRecommendations(String userId, int limit, int offset) throws Exception {
         RecommendationSettings settings = settingsRepository.findFirstByOrderByIdDesc()
                 .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
 
@@ -28,5 +28,16 @@ public class RecommendationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
                 .generateRecommendations(userId, limit, offset);
+    }
+
+    public Double evaluate() throws Exception{
+        RecommendationSettings settings = settingsRepository.findFirstByOrderByIdDesc()
+                .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
+
+        return algorithms.stream()
+                .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
+                .evaluateModel();
     }
 }
