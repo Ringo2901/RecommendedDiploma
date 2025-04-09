@@ -7,6 +7,10 @@
 </head>
 <body>
 
+<header>
+    <h1>Recommendation System</h1>
+</header>
+
 <div class="table-container">
     <h1>Список схем</h1>
 
@@ -27,14 +31,14 @@
                 </ul>
             </td>
             <td class="action-buttons">
-                <a th:href="@{/admin/schema/delete/{id}(id=${schema.id})}">Удалить</a>
+                <a th:href="@{/admin/schema/delete/{id}(id=${schema.id})}" class="delete-btn">Удалить</a>
             </td>
         </tr>
     </table>
 
     <div class="nav-buttons">
-        <a href="/admin/schema/add">Добавить новую схему</a>
-        <a href="/admin">Назад</a>
+        <a href="/admin/schema/add" class="add-btn">Добавить новую схему</a>
+        <a href="/admin" class="back-btn">Назад</a>
     </div>
 </div>
 

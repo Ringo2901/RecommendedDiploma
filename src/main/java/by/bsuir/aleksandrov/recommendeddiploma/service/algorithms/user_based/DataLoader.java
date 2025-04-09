@@ -3,22 +3,34 @@ package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.user_based;
 import by.bsuir.aleksandrov.recommendeddiploma.model.Preference;
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
-import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
-import org.apache.mahout.cf.taste.model.DataModel;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
+import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
+import org.apache.mahout.cf.taste.model.DataModel;
+import java.io.*;
 import java.util.List;
 
 @Service
 public class DataLoader {
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
-    public DataModel loadUserDataModel() throws Exception {
+    @Getter
+    private volatile DataModel dataModel;
+
+    @PostConstruct
+    public void init() {
+        try {
+            this.dataModel = loadUserDataModel();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Ошибка при загрузке модели данных", e);
+        }
+    }
+
+    private DataModel loadUserDataModel() throws Exception {
         File file = new File("user_preferences.csv");
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -26,17 +38,8 @@ public class DataLoader {
             for (User user : users) {
                 if (user.getPreferences() != null) {
                     for (Preference preference : user.getPreferences()) {
-                        String userId = user.getUserId();
-                        String itemId = preference.getItemId();
-
-                        if (!isNumeric(userId)) {
-                            userId = userId.substring(1);
-                        }
-
-                        if (!isNumeric(itemId)) {
-                            itemId = itemId.substring(1);
-                        }
-
+                        String userId = sanitizeId(user.getUserId());
+                        String itemId = sanitizeId(preference.getItemId());
                         writer.write(userId + "," + itemId + "," + preference.getRating());
                         writer.newLine();
                     }
@@ -47,6 +50,10 @@ public class DataLoader {
         return new FileDataModel(file);
     }
 
+    private String sanitizeId(String id) {
+        return isNumeric(id) ? id : id.substring(1);
+    }
+
     private boolean isNumeric(String str) {
         try {
             Integer.parseInt(str);
@@ -55,5 +62,4 @@ public class DataLoader {
             return false;
         }
     }
-
 }

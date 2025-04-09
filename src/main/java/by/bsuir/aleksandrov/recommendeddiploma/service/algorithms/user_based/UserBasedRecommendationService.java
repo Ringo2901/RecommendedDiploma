@@ -1,24 +1,34 @@
 package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.user_based;
 
+import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.BaseRecommendationAlgorithm;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.RecommendationAlgorithm;
-import org.apache.mahout.cf.taste.eval.RecommenderEvaluator;
-import org.apache.mahout.cf.taste.impl.eval.AverageAbsoluteDifferenceRecommenderEvaluator;
+import com.google.common.util.concurrent.AtomicDouble;
+import org.apache.mahout.cf.taste.impl.common.LongPrimitiveIterator;
+import org.apache.mahout.cf.taste.impl.model.GenericDataModel;
 import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
-import org.apache.mahout.cf.taste.impl.similarity.PearsonCorrelationSimilarity;
+import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.model.Preference;
+import org.apache.mahout.cf.taste.model.PreferenceArray;
 import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.Recommender;
+import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.apache.mahout.cf.taste.similarity.UserSimilarity;
+import org.apache.mahout.common.RandomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
-public class UserBasedRecommendationService implements RecommendationAlgorithm {
+public class UserBasedRecommendationService extends BaseRecommendationAlgorithm {
     @Autowired
     private DataLoader dataLoader;
     private DataModel dataModel;
@@ -29,48 +39,30 @@ public class UserBasedRecommendationService implements RecommendationAlgorithm {
     }
 
     @Override
-    public List<String> generateRecommendations(String userId, int limit, int offset) throws Exception {
-        if (dataModel == null) {
-            dataModel = dataLoader.loadUserDataModel();
-        }
+    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws Exception {
+        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit);
         List<String> recommendations = new ArrayList<>();
-        try {
-            UserSimilarity similarity = new PearsonCorrelationSimilarity(dataModel);
-            UserNeighborhood neighborhood = new NearestNUserNeighborhood(10, similarity, dataModel);
-            Recommender recommender = new GenericUserBasedRecommender(dataModel, neighborhood, similarity);
-            if (!isNumeric(userId)) {
-                userId = userId.substring(1);
-            }
-            List<RecommendedItem> recommendedItems = recommender.recommend(Long.parseLong(userId), limit);
-            for (RecommendedItem item : recommendedItems) {
-                recommendations.add(String.valueOf(item.getItemID()));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        for (RecommendedItem item : recommendedItems) {
+            recommendations.add(String.valueOf(item.getItemID()));
         }
         return recommendations;
     }
 
-    @Override
-    public double evaluateModel() throws Exception {
+    private List<RecommendedItem> calculateRecommendations(String userId, int limit) throws Exception {
         if (dataModel == null) {
-            dataModel = dataLoader.loadUserDataModel();
+            dataModel = dataLoader.getDataModel();
         }
+
         try {
-            RecommenderEvaluator evaluator = new AverageAbsoluteDifferenceRecommenderEvaluator();
-            return evaluator.evaluate(recommender -> new GenericUserBasedRecommender(dataModel, new NearestNUserNeighborhood(10, new PearsonCorrelationSimilarity(dataModel), dataModel), new PearsonCorrelationSimilarity(dataModel)), null, dataModel, 0.7, 1.0);
+            UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
+            UserNeighborhood neighborhood = new NearestNUserNeighborhood(75, similarity, dataModel);
+            Recommender recommender = new GenericUserBasedRecommender(dataModel, neighborhood, similarity);
+
+            return recommender.recommend(Long.parseLong(userId), limit);
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
-        }
-    }
-
-    private boolean isNumeric(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+            return Collections.emptyList();
         }
     }
 }

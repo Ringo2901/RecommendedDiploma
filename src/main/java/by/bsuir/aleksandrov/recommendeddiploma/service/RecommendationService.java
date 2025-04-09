@@ -6,6 +6,7 @@ import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.Recommendation
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class RecommendationService {
@@ -27,10 +28,10 @@ public class RecommendationService {
                 .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
-                .generateRecommendations(userId, limit, offset);
+                .generateRecommendations(userId, limit, offset, true);
     }
 
-    public Double evaluate() throws Exception{
+    public Map<String, Double> evaluate(int limit) throws Exception{
         RecommendationSettings settings = settingsRepository.findFirstByOrderByIdDesc()
                 .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
 
@@ -38,6 +39,6 @@ public class RecommendationService {
                 .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
-                .evaluateModel();
+                .evaluateModel(limit);
     }
 }

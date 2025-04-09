@@ -123,13 +123,13 @@ public class ItemController {
                     errors.add("Ошибка при обработке записи: " + record.toString());
                 }
             }
-
+/*
             if (!errors.isEmpty()) {
                 return ResponseEntity.badRequest().body(errors);
             }
-
+*/
             itemRepository.saveAll(items);
-            return ResponseEntity.ok("Файл успешно загружен. Добавлено товаров: " + items.size());
+            return ResponseEntity.ok("Файл успешно загружен. Добавлено товаров: " + items.size() + " Пропущено товаров:" + errors.size());
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Ошибка при обработке файла: " + e.getMessage());

@@ -2,20 +2,105 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Админ-панель</title>
+    <title>Recommended System</title>
     <link rel="stylesheet" href="/css/admin-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+<header>
+    <h1>Recommendation System</h1>
+</header>
 <div class="container">
-    <h1 th:text="${message}">Добро пожаловать в админ-панель!</h1>
-    <p>Выберите действие:</p>
-
-    <div class="nav">
+    <nav class="nav">
         <a href="/admin/settings">Настройка алгоритмов</a>
         <a href="/admin/schema">Настроить схему</a>
         <a href="/admin/import">Импорт данных</a>
-        <a href="/logout">Выход</a>
-    </div>
+        <a href="/admin/metrics">Метрики</a>
+    </nav>
+
+    <section class="chart-container">
+        <h2>Нагрузка базы данных</h2>
+        <canvas id="dbConnectionsChart"></canvas>
+        <canvas id="dbMemoryChart"></canvas>
+        <canvas id="dbReadChart"></canvas>
+        <canvas id="dbWriteChart"></canvas>
+    </section>
 </div>
+
+<script th:inline="javascript">
+    let dbMetrics = /*[[${dbMetrics}]]*/ [];
+    let timestamps = dbMetrics.map(entry => entry.timestampReadable);
+
+    let connections = dbMetrics.map(entry => entry.connections);
+    let memoryUsage = dbMetrics.map(entry => entry.memory);
+    let reads = dbMetrics.map(entry => entry.reads);
+    let writes = dbMetrics.map(entry => entry.writes);
+
+    function createChart(canvasId, label, data, color) {
+        let ctx = document.getElementById(canvasId).getContext('2d');
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, color.replace('1)', '0.3)'));
+        gradient.addColorStop(1, color.replace('1)', '0)'));
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: gradient,
+                    fill: true,
+                    pointRadius: 3,
+                    pointBackgroundColor: color,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Время',
+                            font: {
+                                size: 14
+                            }
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: label,
+                            font: {
+                                size: 14
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    createChart('dbConnectionsChart', 'Число подключений', connections, 'rgba(255, 99, 132, 1)');
+    createChart('dbMemoryChart', 'Использование памяти (MB)', memoryUsage, 'rgba(54, 162, 235, 1)');
+    createChart('dbReadChart', 'Операции чтения', reads, 'rgba(75, 192, 192, 1)');
+    createChart('dbWriteChart', 'Операции записи', writes, 'rgba(237, 227, 145, 1)');
+</script>
 </body>
 </html>

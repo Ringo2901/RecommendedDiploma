@@ -38,13 +38,26 @@ header {
 .nav a:hover {
     background: #1abc9c;
 }
+h2 {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 22px;
+    color: #2c3e50;
+}
 .chart-container {
     margin-top: 20px;
     padding: 20px;
     background: #ecf0f1;
     border-radius: 8px;
+    text-align: center;
+}
+.chart-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 canvas {
     width: 100% !important;
     height: auto !important;
+    max-height: 300px;
 }

@@ -1,5 +1,6 @@
 package by.bsuir.aleksandrov.recommendeddiploma.model;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,4 +18,5 @@ public class RecommendationSettings {
     private String id;
     private RecommendationAlgorithmType algorithm;
     private Map<String, Object> parameters;
+
 }
