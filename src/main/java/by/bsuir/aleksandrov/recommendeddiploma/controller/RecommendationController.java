@@ -31,4 +31,8 @@ public class RecommendationController {
         return ResponseEntity.ok(recommendations);
     }
 
+    @PostMapping("/retrain")
+    public ResponseEntity<String> retrainModel() throws Exception {
+        return ResponseEntity.ok(recommendationService.retrainModel());
+    }
 }

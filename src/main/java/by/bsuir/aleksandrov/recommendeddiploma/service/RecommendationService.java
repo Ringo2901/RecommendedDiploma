@@ -41,4 +41,18 @@ public class RecommendationService {
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
                 .evaluateModel(limit);
     }
+
+    public String retrainModel() throws Exception {
+        RecommendationSettings settings = settingsRepository.findFirstByOrderByIdDesc()
+                .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
+        if (settings.getAlgorithm().name().equalsIgnoreCase("svd")) {
+            return  algorithms.stream()
+                    .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
+                    .retrainModel();
+        } else {
+            return "Not svd algorithm!";
+        }
+    }
 }

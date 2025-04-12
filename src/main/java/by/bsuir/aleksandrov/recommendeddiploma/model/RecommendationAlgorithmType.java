@@ -4,5 +4,5 @@ public enum RecommendationAlgorithmType {
     TF_IDF,
     SVD,
     USER_BASED,
-    CONTENT_BASED
+    ITEM_BASED
 }

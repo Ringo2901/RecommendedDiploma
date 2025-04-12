@@ -1,4 +1,4 @@
-package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.user_based;
+package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.data;
 
 import by.bsuir.aleksandrov.recommendeddiploma.model.Preference;
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;

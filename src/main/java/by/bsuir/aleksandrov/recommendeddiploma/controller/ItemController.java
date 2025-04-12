@@ -3,6 +3,7 @@ package by.bsuir.aleksandrov.recommendeddiploma.controller;
 import by.bsuir.aleksandrov.recommendeddiploma.model.Item;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.ItemRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
+import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -22,10 +23,12 @@ public class ItemController {
 
     private final ItemRepository itemRepository;
     private final SchemaValidator schemaValidator;
+    private final RedisService redisService;
 
-    public ItemController(ItemRepository itemRepository, SchemaValidator schemaValidator) {
+    public ItemController(ItemRepository itemRepository, SchemaValidator schemaValidator, RedisService redisService) {
         this.itemRepository = itemRepository;
         this.schemaValidator = schemaValidator;
+        this.redisService = redisService;
     }
 
     @PostMapping("/add")
@@ -41,6 +44,7 @@ public class ItemController {
 
     @PostMapping("/bulk-add")
     public ResponseEntity<?> createItems(@RequestBody List<Item> items) {
+        redisService.evictAllRecommendations();
         List<Item> validItems = items.stream()
                 .filter(item -> {
                     boolean isValid = schemaValidator.validate("Item", item.getData());
@@ -90,10 +94,11 @@ public class ItemController {
 
     @PostMapping("/upload-csv")
     public ResponseEntity<?> uploadItemsFromCSV(@RequestParam("file") MultipartFile file) {
+
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
         }
-
+        redisService.evictAllRecommendations();
         List<Item> items = new ArrayList<>();
         List<String> errors = new ArrayList<>();
 

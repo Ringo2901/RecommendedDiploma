@@ -6,7 +6,9 @@ import by.bsuir.aleksandrov.recommendeddiploma.repository.SchemaRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.BaseRecommendationAlgorithm;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.RecommendationAlgorithm;
+import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
 import com.google.common.util.concurrent.AtomicDouble;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,8 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
     private final UserRepository userRepository;
     private ProductSimilarityCalculator productSimilarityCalculator;
     private final SchemaRepository schemaRepository;
+    @Autowired
+    private RedisService redisService;
 
     public Tf_IDF_RecommendationAlgorithm(SchemaRepository schemaRepository, ItemRepository itemRepository, UserRepository userRepository) throws IOException {
         this.itemRepository = itemRepository;
@@ -38,7 +42,18 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
     }
 
     @Override
+    public String retrainModel() {
+        return "Not SVD algorithm";
+    }
+
+    @Override
     public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws IOException {
+        String cacheKey = redisService.generateKey(userId, limit, offset, filtering, "tf-idf");
+
+        List<String> cached = redisService.getCachedRecommendations(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
         if (productSimilarityCalculator == null) {
             Schema schema = schemaRepository.findByEntityType("Item").orElseThrow(RuntimeException::new);
             productSimilarityCalculator = new ProductSimilarityCalculator(schema.getFields());
@@ -118,7 +133,10 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
             throw new RuntimeException("Products not found!"); //TODO exception
         }
         System.out.println("Recommendation for user " + userId);
-        return topNKeys.subList(offset, endIndex);
+
+        List<String> recommendations = topNKeys.subList(offset, endIndex);
+        redisService.cacheRecommendations(cacheKey, recommendations, 1800);
+        return recommendations;
     }
 
 }

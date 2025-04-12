@@ -9,15 +9,15 @@ import by.bsuir.aleksandrov.recommendeddiploma.service.RecommendationService;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Controller
 public class AdminController {
@@ -46,7 +46,7 @@ public class AdminController {
 
     private void deleteOldMetrics() {
         long currentTime = System.currentTimeMillis();
-        long oneHoursAgo = currentTime -  60 * 60 * 1000;
+        long oneHoursAgo = currentTime - 60 * 60 * 1000;
 
         mongoTemplate.getDb().getCollection("dbMetrics").deleteMany(
                 new Document("timestamp", new Document("$lt", oneHoursAgo))
@@ -70,7 +70,7 @@ public class AdminController {
         model.addAttribute("name", settings.getAlgorithm().name());
         Optional<Metrics> metrics = metricsRepository.findMetricsByName(settings.getAlgorithm().name());
         if (metrics.isPresent()) {
-            model.addAttribute("metrics",metrics.get().getData());
+            model.addAttribute("metrics", metrics.get().getData());
         } else {
             Map<String, Map<Integer, Double>> metricsMap = calculateMetrics();
             Metrics result = new Metrics();
@@ -78,7 +78,7 @@ public class AdminController {
             result.setName(settings.getAlgorithm().name());
             result.setTimestamp(LocalDateTime.now());
             metricsRepository.save(result);
-            model.addAttribute("metrics",metricsMap);
+            model.addAttribute("metrics", metricsMap);
         }
         return "admin-metrics";
     }
@@ -100,12 +100,12 @@ public class AdminController {
             System.out.println("Limit : " + limit);
             Map<String, Double> metrics = recommendationService.evaluate(limit);
             precisionList.put(limit, metrics.get("precision"));
-            recallList.put(limit,metrics.get("recall"));
-            f1ScoreList.put(limit,metrics.get("f1Score"));
-            nDCGList.put(limit,metrics.get("nDCG"));
-            hitRateList.put(limit,metrics.get("hitRate"));
-            coverageList.put(limit,metrics.get("coverage"));
-            personalizationList.put(limit,metrics.get("personalization"));
+            recallList.put(limit, metrics.get("recall"));
+            f1ScoreList.put(limit, metrics.get("f1Score"));
+            nDCGList.put(limit, metrics.get("nDCG"));
+            hitRateList.put(limit, metrics.get("hitRate"));
+            coverageList.put(limit, metrics.get("coverage"));
+            personalizationList.put(limit, metrics.get("personalization"));
         }
 
         Map<String, Map<Integer, Double>> metrics = new HashMap<>();

@@ -5,6 +5,7 @@ import by.bsuir.aleksandrov.recommendeddiploma.model.User;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.ItemRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.service.SchemaValidator;
+import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -25,11 +26,13 @@ public class UserController {
     private final UserRepository userRepository;
     private final SchemaValidator schemaValidator;
     private final ItemRepository itemRepository;
+    private final RedisService redisService;
 
-    public UserController(UserRepository userRepository, SchemaValidator schemaValidator, ItemRepository itemRepository) {
+    public UserController(UserRepository userRepository, SchemaValidator schemaValidator, ItemRepository itemRepository, RedisService redisService) {
         this.userRepository = userRepository;
         this.schemaValidator = schemaValidator;
         this.itemRepository = itemRepository;
+        this.redisService = redisService;
     }
 
     @PostMapping("/add")
@@ -45,6 +48,7 @@ public class UserController {
 
     @PostMapping("/bulk-add")
     public ResponseEntity<?> createUsers(@RequestBody List<User> users) {
+        redisService.evictAllRecommendations();
         List<User> validUsers = users.stream()
                 .filter(user -> {
                     boolean isValid = schemaValidator.validate("User", user.getData());
@@ -105,7 +109,7 @@ public class UserController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
         }
-
+        redisService.evictAllRecommendations();
         List<User> users = new ArrayList<>();
         List<String> errors = new ArrayList<>();
 
@@ -165,6 +169,7 @@ public class UserController {
 
     @PostMapping("/{userId}/preferences/bulk-add")
     public ResponseEntity<?> addPreferences(@PathVariable String userId, @RequestBody List<Preference> preferences) {
+        redisService.evictAllRecommendations();
         Optional<User> userOptional = userRepository.findById(userId);
 
         if (userOptional.isEmpty()) {
@@ -183,6 +188,8 @@ public class UserController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Ошибка: Файл пуст.");
         }
+
+        redisService.evictAllRecommendations();
 
         List<String> errors = new ArrayList<>();
         int batchSize = 1000; // Размер пачки
