@@ -8,6 +8,7 @@ import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import org.apache.mahout.cf.taste.recommender.IDRescorer;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.similarity.UserSimilarity;
@@ -38,7 +39,7 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
             return cached;
         }
 
-        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit);
+        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit, filtering);
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -49,7 +50,7 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
         return recommendations;
     }
 
-    private List<RecommendedItem> calculateRecommendations(String userId, int limit) throws Exception {
+    private List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering) throws Exception {
         if (dataModel == null) {
             dataModel = dataLoader.getDataModel();
         }
@@ -59,12 +60,17 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
             UserNeighborhood neighborhood = new NearestNUserNeighborhood(75, similarity, dataModel);
             Recommender recommender = new GenericUserBasedRecommender(dataModel, neighborhood, similarity);
 
-            return recommender.recommend(Long.parseLong(userId), limit);
+            if (filtering) {
+                return recommender.recommend(Long.parseLong(userId), limit);
+            } else {
+                return recommender.recommend(Long.parseLong(userId), limit, true);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
         }
     }
+
 
     @Override
     public String retrainModel() {

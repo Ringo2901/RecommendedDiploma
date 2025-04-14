@@ -23,7 +23,7 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
     protected ItemRepository itemRepository;
 
     @Override
-    public Map<String, Double> evaluateModel(int limit) throws Exception {
+    public Map<String, Double> evaluateModel(int limit) {
         Pageable pageable = PageRequest.of(0, 20);
         List<User> users = userRepository.findAll(pageable).getContent();
 

@@ -6,6 +6,7 @@ import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.UncenteredCosineSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.recommender.IDRescorer;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.Recommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
@@ -38,7 +39,7 @@ public class ItemBasedRecommendationService extends BaseRecommendationAlgorithm 
             return cached;
         }
 
-        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit);
+        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit, filtering);
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -54,22 +55,27 @@ public class ItemBasedRecommendationService extends BaseRecommendationAlgorithm 
         return "Not SVD algorithm";
     }
 
-    private List<RecommendedItem> calculateRecommendations(String userId, int limit) throws Exception {
+    private List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering) throws Exception {
         if (dataModel == null) {
             dataModel = dataLoader.getDataModel();
         }
 
         try {
             ItemSimilarity itemSimilarity = new UncenteredCosineSimilarity(dataModel);
-
             Recommender recommender = new GenericItemBasedRecommender(dataModel, itemSimilarity);
 
-            return recommender.recommend(Long.parseLong(userId), limit);
+            if (filtering) {
+                return recommender.recommend(Long.parseLong(userId), limit);
+            } else {
+                return recommender.recommend(Long.parseLong(userId), limit, true);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
         }
     }
+
 
 }
 

@@ -25,11 +25,15 @@ import java.util.Map;
 
 @Service
 public class SVDRecommendationService extends BaseRecommendationAlgorithm {
+
     @Autowired
     private RedisService redisService;
+
     private static final String SVD_MODEL_KEY = "svd-model";
+
     @Autowired
     private DataLoader dataLoader;
+
     private DataModel dataModel;
 
     @Override
@@ -39,7 +43,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
 
     @Override
     public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws Exception {
-        List<RecommendedItem> recommendedItems = recommend(userId, limit);
+        List<RecommendedItem> recommendedItems = recommend(userId, limit, filtering);
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -49,13 +53,21 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         return recommendations;
     }
 
-    public List<RecommendedItem> recommend(String userId, int limit) throws Exception {
+    public List<RecommendedItem> recommend(String userId, int limit, boolean filtering) throws Exception {
         Recommender recommender = loadOrTrainRecommender();
-        return recommender.recommend(Long.parseLong(userId), limit);
+
+        // Поддержка фильтрации через cast
+        if (recommender instanceof CustomSVDRecommender) {
+            return ((CustomSVDRecommender) recommender)
+                    .recommend(Long.parseLong(userId), limit, null, filtering); // !filtering -> includeKnownItems
+        } else {
+            // fallback
+            return recommender.recommend(Long.parseLong(userId), limit);
+        }
     }
 
     private Recommender loadOrTrainRecommender() throws Exception {
-        dataModel = dataLoader.getDataModel(); // загружаем dataModel (из базы, файла и т.д.)
+        dataModel = dataLoader.getDataModel();
 
         Factorization factorization;
 
@@ -72,7 +84,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         Factorizer factorizer = new ALSWRFactorizer(dataModel, 10, 0.05, 10);
         Factorization factorization = factorizer.factorize();
 
-        saveFactorizationToRedis(factorization); // сериализация Factorization
+        saveFactorizationToRedis(factorization);
         return factorization;
     }
 
@@ -88,7 +100,6 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         Map<Long, Integer> userIDMapping = new HashMap<>();
         Map<Long, Integer> itemIDMapping = new HashMap<>();
 
-        // Преобразуем FastByIDMap в обычные HashMap для сериализации
         for (Map.Entry<Long, Integer> entry : factorization.getUserIDMappings()) {
             userIDMapping.put(entry.getKey(), entry.getValue());
         }
@@ -97,7 +108,6 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
             itemIDMapping.put(entry.getKey(), entry.getValue());
         }
 
-        // Сохраняем в Redis
         FactorizationData factorizationData = new FactorizationData(userIDMapping, itemIDMapping,
                 factorization.allUserFeatures(), factorization.allItemFeatures());
 
@@ -105,13 +115,11 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
     }
 
     public Factorization loadFactorizationFromRedis() {
-        // Получаем данные из Redis
         FactorizationData factorizationData = (FactorizationData) redisService.getModel(SVD_MODEL_KEY);
         if (factorizationData == null) {
             return null;
         }
 
-        // Восстанавливаем FastByIDMap
         FastByIDMap<Integer> userIDMapping = new FastByIDMap<>();
         for (Map.Entry<Long, Integer> entry : factorizationData.getUserIDMapping().entrySet()) {
             userIDMapping.put(entry.getKey(), entry.getValue());
@@ -122,10 +130,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
             itemIDMapping.put(entry.getKey(), entry.getValue());
         }
 
-        // Восстанавливаем Factorization
         return new Factorization(userIDMapping, itemIDMapping,
                 factorizationData.getUserFeatures(), factorizationData.getItemFeatures());
     }
-
-
 }

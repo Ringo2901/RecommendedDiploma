@@ -2,6 +2,7 @@ package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.svd;
 
 import org.apache.mahout.cf.taste.common.Refreshable;
 import org.apache.mahout.cf.taste.common.TasteException;
+import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem;
 import org.apache.mahout.cf.taste.impl.recommender.svd.Factorization;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.recommender.IDRescorer;
@@ -21,38 +22,53 @@ public class CustomSVDRecommender implements Recommender {
     }
 
     @Override
-    public List<RecommendedItem> recommend(long userID, int howMany) {
+    public List<RecommendedItem> recommend(long userID, int howMany) throws TasteException {
+        return recommend(userID, howMany, null, true);
+    }
+
+    @Override
+    public List<RecommendedItem> recommend(long userID, int howMany, boolean includeKnownItems) throws TasteException {
+        return recommend(userID, howMany, null, includeKnownItems);
+    }
+
+    @Override
+    public List<RecommendedItem> recommend(long userID, int howMany, IDRescorer rescorer) throws TasteException {
+        return recommend(userID, howMany, rescorer, true);
+    }
+
+    @Override
+    public List<RecommendedItem> recommend(long userID, int howMany, IDRescorer rescorer, boolean includeKnownItems) throws TasteException {
         List<RecommendedItem> recommendations = new ArrayList<>();
         Set<Long> itemIDs = new HashSet<>();
+
         try {
             dataModel.getItemIDs().forEachRemaining(itemIDs::add);
+
             for (Long itemId : itemIDs) {
-                if (dataModel.getPreferenceValue(userID, itemId) != null) continue;
+                // Пропускаем уже оценённые товары, если фильтрация включена
+                if (includeKnownItems && dataModel.getPreferenceValue(userID, itemId) != null) {
+                    continue;
+                }
+
+                // Пропускаем, если рескорер фильтрует
+                if (rescorer != null && rescorer.isFiltered(itemId)) {
+                    continue;
+                }
 
                 float estimate = estimatePreference(userID, itemId);
-                recommendations.add(new org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem(itemId, estimate));
+                if (!Float.isNaN(estimate)) {
+                    if (rescorer != null) {
+                        estimate = (float) rescorer.rescore(itemId, estimate);
+                    }
+                    recommendations.add(new GenericRecommendedItem(itemId, estimate));
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new TasteException("Error during recommendation generation", e);
         }
 
         recommendations.sort(Comparator.comparingDouble(RecommendedItem::getValue).reversed());
         return recommendations.subList(0, Math.min(howMany, recommendations.size()));
-    }
-
-    @Override
-    public List<RecommendedItem> recommend(long l, int i, boolean b) throws TasteException {
-        return List.of();
-    }
-
-    @Override
-    public List<RecommendedItem> recommend(long l, int i, IDRescorer idRescorer) throws TasteException {
-        return List.of();
-    }
-
-    @Override
-    public List<RecommendedItem> recommend(long l, int i, IDRescorer idRescorer, boolean b) throws TasteException {
-        return List.of();
     }
 
     @Override
@@ -87,7 +103,6 @@ public class CustomSVDRecommender implements Recommender {
 
     @Override
     public void refresh(Collection<Refreshable> collection) {
-
+        // No-op
     }
 }
-
