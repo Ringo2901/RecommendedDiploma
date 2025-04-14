@@ -47,7 +47,8 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
     }
 
     @Override
-    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws IOException {
+    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
+                                                RecommendationSettings settings) throws IOException {
         String cacheKey = redisService.generateKey(userId, limit, offset, filtering, "tf-idf");
 
         List<String> cached = redisService.getCachedRecommendations(cacheKey);
@@ -63,20 +64,20 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
         if (user == null) {
             throw new RuntimeException("User not found!");//TODO exception
         }
-
+        int numItems = Integer.parseInt(settings.getParameters().get("numItems").toString());
         List<String> topNKeys;
         if (user.getPreferences() != null && !user.getPreferences().isEmpty()) {
-            List<String> knownItems = user.getPreferences().stream().map(Preference::getItemId).limit(200).toList();
+            List<String> knownItems = user.getPreferences().stream().map(Preference::getItemId).limit(numItems).toList();
 
             // Параллельная фильтрация товаров
             List<Item> itemsList;
             if (filtering) {
                 itemsList = itemRepository.findAll().parallelStream()
                         .filter(product -> !knownItems.contains(product.getItemId()))
-                        .limit(200)
+                        .limit(numItems)
                         .toList();
             } else {
-                Pageable pageable = PageRequest.of(0, 200);
+                Pageable pageable = PageRequest.of(0, numItems);
                 itemsList = itemRepository.findAll(pageable).getContent();
             }
 
@@ -86,7 +87,7 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
                     .map(product -> itemRepository.findByItemId(product.getItemId()))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
-                    .limit(200)
+                    .limit(numItems)
                     .toList();
 
             Map<String, Double> similarityMap = new HashMap<>();

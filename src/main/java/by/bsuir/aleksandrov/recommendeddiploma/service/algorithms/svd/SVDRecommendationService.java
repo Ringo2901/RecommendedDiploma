@@ -1,17 +1,15 @@
 package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.svd;
 
 import by.bsuir.aleksandrov.recommendeddiploma.model.FactorizationData;
+import by.bsuir.aleksandrov.recommendeddiploma.model.RecommendationSettings;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.RecommendationSettingsRepository;
-import by.bsuir.aleksandrov.recommendeddiploma.service.RecommendationService;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.BaseRecommendationAlgorithm;
-import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.RecommendationAlgorithm;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.data.DataLoader;
 import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
 import org.apache.mahout.cf.taste.impl.common.FastByIDMap;
 import org.apache.mahout.cf.taste.impl.recommender.svd.ALSWRFactorizer;
 import org.apache.mahout.cf.taste.impl.recommender.svd.Factorization;
 import org.apache.mahout.cf.taste.impl.recommender.svd.Factorizer;
-import org.apache.mahout.cf.taste.impl.recommender.svd.SVDRecommender;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.Recommender;
@@ -28,8 +26,10 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
 
     @Autowired
     private RedisService redisService;
+    @Autowired
+    private RecommendationSettingsRepository recommendationSettingsRepository;
 
-    private static final String SVD_MODEL_KEY = "svd-model";
+    public static final String SVD_MODEL_KEY = "svd-model";
 
     @Autowired
     private DataLoader dataLoader;
@@ -42,8 +42,9 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
     }
 
     @Override
-    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws Exception {
-        List<RecommendedItem> recommendedItems = recommend(userId, limit, filtering);
+    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
+                                                RecommendationSettings settings) throws Exception {
+        List<RecommendedItem> recommendedItems = recommend(userId, limit, filtering, settings);
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -53,8 +54,9 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         return recommendations;
     }
 
-    public List<RecommendedItem> recommend(String userId, int limit, boolean filtering) throws Exception {
-        Recommender recommender = loadOrTrainRecommender();
+    public List<RecommendedItem> recommend(String userId, int limit, boolean filtering,
+                                           RecommendationSettings settings) throws Exception {
+        Recommender recommender = loadOrTrainRecommender(settings);
 
         // Поддержка фильтрации через cast
         if (recommender instanceof CustomSVDRecommender) {
@@ -66,7 +68,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         }
     }
 
-    private Recommender loadOrTrainRecommender() throws Exception {
+    private Recommender loadOrTrainRecommender(RecommendationSettings settings) throws Exception {
         dataModel = dataLoader.getDataModel();
 
         Factorization factorization;
@@ -74,14 +76,17 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         if (redisService.exists(SVD_MODEL_KEY)) {
             factorization = loadFactorizationFromRedis();
         } else {
-            factorization = trainAndCacheFactorization(dataModel);
+            factorization = trainAndCacheFactorization(dataModel, settings);
         }
 
         return new CustomSVDRecommender(dataModel, factorization);
     }
 
-    private Factorization trainAndCacheFactorization(DataModel dataModel) throws Exception {
-        Factorizer factorizer = new ALSWRFactorizer(dataModel, 10, 0.05, 10);
+    private Factorization trainAndCacheFactorization(DataModel dataModel,
+                                                     RecommendationSettings settings) throws Exception {
+        int numFeatures = Integer.parseInt(settings.getParameters().get("numFeatures").toString());
+        int numIterations = Integer.parseInt(settings.getParameters().get("numIterations").toString());
+        Factorizer factorizer = new ALSWRFactorizer(dataModel, numFeatures, 0.05, numIterations);
         Factorization factorization = factorizer.factorize();
 
         saveFactorizationToRedis(factorization);
@@ -90,9 +95,11 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
 
     @Override
     public String retrainModel() throws Exception {
+        RecommendationSettings settings = recommendationSettingsRepository.findFirstByOrderByIdDesc()
+                .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
         redisService.deleteModel(SVD_MODEL_KEY);
         redisService.evictRecommendationsByAlgorithm("svd");
-        trainAndCacheFactorization(dataLoader.getDataModel());
+        trainAndCacheFactorization(dataLoader.getDataModel(), settings);
         return "Retrain successfully";
     }
 

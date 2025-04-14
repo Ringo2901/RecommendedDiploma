@@ -1,5 +1,6 @@
 package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms;
 import by.bsuir.aleksandrov.recommendeddiploma.model.Preference;
+import by.bsuir.aleksandrov.recommendeddiploma.model.RecommendationSettings;
 import by.bsuir.aleksandrov.recommendeddiploma.model.User;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.ItemRepository;
 import by.bsuir.aleksandrov.recommendeddiploma.repository.UserRepository;
@@ -23,7 +24,7 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
     protected ItemRepository itemRepository;
 
     @Override
-    public Map<String, Double> evaluateModel(int limit) {
+    public Map<String, Double> evaluateModel(int limit, RecommendationSettings settings) {
         Pageable pageable = PageRequest.of(0, 20);
         List<User> users = userRepository.findAll(pageable).getContent();
 
@@ -49,7 +50,7 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
 
                 List<String> recommendations;
                 try {
-                    recommendations = generateRecommendations(user.getUserId(), limit, 0, false);
+                    recommendations = generateRecommendations(user.getUserId(), limit, 0, false, settings);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -141,5 +142,6 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
         return union;
     }
 
-    public abstract List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws Exception;
+    public abstract List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
+                                                         RecommendationSettings settings) throws Exception;
 }

@@ -28,7 +28,7 @@ public class RecommendationService {
                 .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
-                .generateRecommendations(userId, limit, offset, true);
+                .generateRecommendations(userId, limit, offset, true, settings);
     }
 
     public Map<String, Double> evaluate(int limit) throws Exception{
@@ -39,7 +39,7 @@ public class RecommendationService {
                 .filter(algo -> algo.supports(String.valueOf(settings.getAlgorithm())))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Алгоритм не найден"))
-                .evaluateModel(limit);
+                .evaluateModel(limit, settings);
     }
 
     public String retrainModel() throws Exception {

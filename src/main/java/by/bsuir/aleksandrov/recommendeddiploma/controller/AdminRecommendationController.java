@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import static by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.svd.SVDRecommendationService.SVD_MODEL_KEY;
+
 @RestController
 @RequestMapping("/admin/recommendation-settings")
 public class AdminRecommendationController {
@@ -31,14 +33,13 @@ public class AdminRecommendationController {
     public ResponseEntity<String> updateSettings(@RequestBody RecommendationSettings newSettings) {
         newSettings.setId("global");
         settingsRepository.save(newSettings);
+        redisService.deleteModel(SVD_MODEL_KEY);
         redisService.evictAllRecommendations();
         return ResponseEntity.ok("Настройки обновлены");
     }
 
     private RecommendationSettings defaultSettings() {
         Map<String, Object> defaultParams = new HashMap<>();
-        defaultParams.put("numFactors", 50);
-        defaultParams.put("numIterations", 100);
 
         return new RecommendationSettings("global", RecommendationAlgorithmType.TF_IDF, defaultParams);
     }

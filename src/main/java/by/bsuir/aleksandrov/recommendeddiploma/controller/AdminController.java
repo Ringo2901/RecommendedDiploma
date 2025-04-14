@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -81,6 +82,12 @@ public class AdminController {
             model.addAttribute("metrics", metricsMap);
         }
         return "admin-metrics";
+    }
+
+    @PostMapping("/admin/metrics/recalculate")
+    public String recalculateMetrics() {
+        metricsRepository.deleteAll();
+        return "redirect:/admin/metrics";
     }
 
     private Map<String, Map<Integer, Double>> calculateMetrics() throws Exception {

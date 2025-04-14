@@ -57,13 +57,17 @@
 
     if (algorithm === "SVD") {
       container.innerHTML = `
-        <label>Количество факторов:</label>
-        <input type="number" id="numFactors" value="${parameters.numFactors || 50}" required>
-
-        <label>Число итераций:</label>
-        <input type="number" id="numIterations" value="${parameters.numIterations || 100}" required>
-      `;
-    } else if (algorithm === "USER_BASED") {
+    <div class="form-row">
+      <label for="numFeatures">Количество фич:</label>
+      <input type="number" id="numFeatures" value="${parameters.numFeatures || 50}" required>
+    </div>
+    <div class="form-row">
+      <label for="numIterations">Число итераций:</label>
+      <input type="number" id="numIterations" value="${parameters.numIterations || 100}" required>
+    </div>
+  `;
+    }
+ else if (algorithm === "USER_BASED") {
       container.innerHTML = `
         <label>Количество соседей:</label>
         <input type="number" id="numNeighbors" value="${parameters.numNeighbors || 10}" required>
@@ -73,11 +77,6 @@
         <label>Количество товаров для выборки:</label>
         <input type="number" id="numItems" value="${parameters.numItems || 100}" required>
       `;
-    } else if (algorithm === "CONTENT_BASED") {
-      container.innerHTML = `
-        <label>Коэффициент важности характеристик:</label>
-        <input type="number" step="0.01" id="featureWeight" value="${parameters.featureWeight || 1.0}" required>
-      `;
     }
   }
 
@@ -86,12 +85,10 @@
     let parameters = {};
 
     if (algorithm === "SVD") {
-      parameters.numFactors = document.getElementById("numFactors").value;
+      parameters.numFeatures = document.getElementById("numFeatures").value;
       parameters.numIterations = document.getElementById("numIterations").value;
     } else if (algorithm === "USER_BASED") {
       parameters.numNeighbors = document.getElementById("numNeighbors").value;
-    } else if (algorithm === "CONTENT_BASED") {
-      parameters.featureWeight = document.getElementById("featureWeight").value;
     } else if (algorithm === "TF_IDF") {
       parameters.numItems = document.getElementById("numItems").value;
     }

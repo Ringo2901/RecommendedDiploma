@@ -1,5 +1,6 @@
 package by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.user_based;
 
+import by.bsuir.aleksandrov.recommendeddiploma.model.RecommendationSettings;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.BaseRecommendationAlgorithm;
 import by.bsuir.aleksandrov.recommendeddiploma.service.algorithms.data.DataLoader;
 import by.bsuir.aleksandrov.recommendeddiploma.service.redis.RedisService;
@@ -31,7 +32,8 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
     }
 
     @Override
-    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering) throws Exception {
+    public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
+                                                RecommendationSettings settings) throws Exception {
         String cacheKey = redisService.generateKey(userId, limit, offset, filtering, "user-based");
 
         List<String> cached = redisService.getCachedRecommendations(cacheKey);
@@ -39,7 +41,8 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
             return cached;
         }
 
-        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit, filtering);
+        List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit, filtering,
+                Integer.parseInt(settings.getParameters().get("numNeighbors").toString()));
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -50,14 +53,15 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
         return recommendations;
     }
 
-    private List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering) throws Exception {
+    private List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering,
+                                                           Integer numNeighborhood) throws Exception {
         if (dataModel == null) {
             dataModel = dataLoader.getDataModel();
         }
 
         try {
             UserSimilarity similarity = new UncenteredCosineSimilarity(dataModel);
-            UserNeighborhood neighborhood = new NearestNUserNeighborhood(75, similarity, dataModel);
+            UserNeighborhood neighborhood = new NearestNUserNeighborhood(numNeighborhood, similarity, dataModel);
             Recommender recommender = new GenericUserBasedRecommender(dataModel, neighborhood, similarity);
 
             if (filtering) {
