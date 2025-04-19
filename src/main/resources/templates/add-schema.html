@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить схему</title>
+    <link rel="stylesheet" href="/css/add-schema-style.css">
+</head>
+<body>
+
+<header>
+    <h1>Recommendation System</h1>
+</header>
+
+<div class="form-container">
+    <h1>Добавить новую схему</h1>
+    <form action="/admin/schema/add" method="post">
+        <label>Тип сущности:</label>
+        <select name="entityType">
+            <option value="User">User</option>
+            <option value="Item">Item</option>
+        </select>
+
+        <div id="fields-container">
+            <div class="field-entry">
+                <label>Название поля:</label>
+                <input type="text" name="fields[0].name" required>
+
+                <label>Тип данных:</label>
+                <select name="fields[0].type">
+                    <option value="String">String</option>
+                    <option value="Integer">Integer</option>
+                    <option value="Boolean">Boolean</option>
+                    <option value="Double">Double</option>
+                </select>
+
+                <label>Вес:</label>
+                <input type="number" step="0.01" name="fields[0].weight" required>
+                <button type="button" class="remove-btn" onclick="removeField(this)">Удалить</button>
+            </div>
+        </div>
+
+        <button type="button" class="add-btn" onclick="addField()">Добавить поле</button>
+        <button type="submit" class="submit-btn">Добавить</button>
+    </form>
+
+    <div class="nav">
+        <a href="/admin/schema">Вернуться</a>
+    </div>
+</div>
+
+<script>
+    let fieldIndex = 1;
+
+    function addField() {
+        let container = document.getElementById("fields-container");
+        let div = document.createElement("div");
+        div.classList.add("field-entry");
+        div.innerHTML = `
+            <label>Название поля:</label>
+            <input type="text" name="fields[${fieldIndex}].name" required>
+
+            <label>Тип данных:</label>
+            <select name="fields[${fieldIndex}].type">
+                <option value="String">String</option>
+                <option value="Integer">Integer</option>
+                <option value="Boolean">Boolean</option>
+                <option value="Double">Double</option>
+            </select>
+
+            <label>Вес:</label>
+            <input type="number" step="0.01" name="fields[${fieldIndex}].weight" required>
+            <button type="button" class="remove-btn" onclick="removeField(this)">Удалить</button>
+        `;
+        container.appendChild(div);
+        fieldIndex++;
+    }
+
+    function removeField(button) {
+        let fieldEntry = button.parentElement;
+        fieldEntry.remove();
+    }
+</script>
+
+</body>
+</html>

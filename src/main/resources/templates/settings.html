@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки рекомендаций</title>
+  <link rel="stylesheet" href="/css/admin-settings-style.css">
+</head>
+<body>
+
+<header>
+  <h1>Recommendation System</h1>
+</header>
+
+<div class="settings-container">
+  <h1>Настройки системы рекомендаций</h1>
+
+  <form id="recommendation-settings-form">
+    <label for="algorithm">Выберите алгоритм:</label>
+    <select id="algorithm" name="algorithm">
+      <option value="TF_IDF">TF-IDF</option>
+      <option value="SVD">SVD</option>
+      <option value="USER_BASED">User-Based</option>
+      <option value="ITEM_BASED">Item-Based</option>
+    </select>
+
+    <div id="parameters-container">
+      <!-- Динамически загружаемые параметры -->
+    </div>
+
+    <button type="button" onclick="saveSettings()" class="save-btn">Сохранить</button>
+  </form>
+
+  <p id="status-message"></p>
+
+  <div class="nav-buttons">
+    <a href="/admin" class="back-btn">Назад в админ-панель</a>
+  </div>
+</div>
+
+<script>
+  async function loadSettings() {
+    try {
+      let response = await fetch('/admin/recommendation-settings');
+      if (response.ok) {
+        let settings = await response.json();
+        document.getElementById('algorithm').value = settings.algorithm;
+        updateParametersUI(settings.algorithm, settings.parameters);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки настроек:", error);
+    }
+  }
+
+  function updateParametersUI(algorithm, parameters = {}) {
+    let container = document.getElementById("parameters-container");
+    container.innerHTML = "";
+
+    if (algorithm === "SVD") {
+      container.innerHTML = `
+    <div class="form-row">
+      <label for="numFeatures">Количество параметров:</label>
+      <input type="number" id="numFeatures" value="${parameters.numFeatures || 50}" required>
+    </div>
+    <div class="form-row">
+      <label for="numIterations">Число итераций:</label>
+      <input type="number" id="numIterations" value="${parameters.numIterations || 100}" required>
+    </div>
+  `;
+    }
+ else if (algorithm === "USER_BASED") {
+      container.innerHTML = `
+        <label>Количество соседей:</label>
+        <input type="number" id="numNeighbors" value="${parameters.numNeighbors || 10}" required>
+      `;
+    } else if (algorithm === "TF_IDF") {
+      container.innerHTML = `
+        <label>Количество товаров для выборки:</label>
+        <input type="number" id="numItems" value="${parameters.numItems || 100}" required>
+      `;
+    }
+  }
+
+  async function saveSettings() {
+    let algorithm = document.getElementById('algorithm').value;
+    let parameters = {};
+
+    if (algorithm === "SVD") {
+      parameters.numFeatures = document.getElementById("numFeatures").value;
+      parameters.numIterations = document.getElementById("numIterations").value;
+    } else if (algorithm === "USER_BASED") {
+      parameters.numNeighbors = document.getElementById("numNeighbors").value;
+    } else if (algorithm === "TF_IDF") {
+      parameters.numItems = document.getElementById("numItems").value;
+    }
+
+    let settings = { algorithm, parameters };
+
+    try {
+      let response = await fetch('/admin/recommendation-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+
+      document.getElementById("status-message").innerText = await response.text();
+    } catch (error) {
+      console.error("Ошибка сохранения настроек:", error);
+    }
+  }
+
+  document.getElementById('algorithm').addEventListener('change', (event) => {
+    updateParametersUI(event.target.value);
+  });
+
+  loadSettings();
+</script>
+
+</body>
+</html>

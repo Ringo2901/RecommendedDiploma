@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Импорт CSV</title>
+  <link rel="stylesheet" href="/css/admin-csv-import-style.css">
+</head>
+
+<body>
+<header>
+  <h1>Recommendation System</h1>
+</header>
+<div class="form-container">
+  <h1>Импорт данных из CSV</h1>
+
+  <form id="upload-form" enctype="multipart/form-data">
+    <label>Выберите тип данных:</label>
+    <select id="dataType">
+      <option value="User">Пользователи</option>
+      <option value="Item">Товары</option>
+      <option value="Preference">Предпочтения</option>
+    </select>
+
+    <label>Выберите CSV файл:</label>
+    <div class="file-input-container">
+      <input type="file" id="fileInput" accept=".csv" required>
+      <label for="fileInput" class="file-input-label">Выберите файл</label>
+      <span class="file-name">Файл не выбран</span>
+    </div>
+
+    <button type="button" onclick="uploadFile()">Загрузить</button>
+  </form>
+
+  <div id="message"></div>
+
+  <div class="nav">
+    <a href="/admin">Назад</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById("fileInput").addEventListener("change", function() {
+    const fileName = this.files.length > 0 ? this.files[0].name : "Файл не выбран";
+    document.querySelector(".file-name").textContent = fileName;
+  });
+
+  function uploadFile() {
+    let fileInput = document.getElementById("fileInput");
+    let dataType = document.getElementById("dataType").value;
+    let messageDiv = document.getElementById("message");
+
+    if (!fileInput.files.length) {
+      messageDiv.innerText = "Ошибка: Выберите файл!";
+      messageDiv.className = "error";
+      return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    let url;
+    if (dataType === "User") {
+      url = "/users/upload-csv";
+    } else if (dataType === "Item") {
+      url = "/items/upload-csv";
+    } else {
+      url = "/users/upload-preferences";
+    }
+
+    fetch(url, {
+      method: "POST",
+      body: formData
+    })
+            .then(response => response.text())
+            .then(data => {
+              messageDiv.innerText = data;
+              messageDiv.className = "success";
+              fileInput.value = "";
+              document.querySelector(".file-name").textContent = "Файл не выбран";
+            })
+            .catch(error => {
+              messageDiv.innerText = "Ошибка при загрузке: " + error;
+              messageDiv.className = "error";
+            });
+  }
+</script>
+
+</body>
+</html>

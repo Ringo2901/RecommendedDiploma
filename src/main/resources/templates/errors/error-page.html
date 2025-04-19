@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Упс! Что-то пошло не так</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f9f9f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        .error-code {
+            font-size: 64px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .message {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .details {
+            font-size: 16px;
+            color: #777;
+            margin-bottom: 30px;
+        }
+
+        .home-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .home-button:hover {
+            background: #2980b9;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="error-icon">🚫</div>
+    <div class="error-code" th:text="${status}">500</div>
+    <div class="message" th:text="${error}">Внутренняя ошибка сервера</div>
+    <div class="details" th:text="${message}">Попробуйте позже или свяжитесь с поддержкой.</div>
+
+    <a href="/admin" class="home-button">Вернуться на главную</a>
+
+    <div class="footer-note">
+        Если ошибка повторяется, пожалуйста, сообщите администратору.
+    </div>
+</div>
+</body>
+</html>

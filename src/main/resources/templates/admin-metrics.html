@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Метрики</title>
+  <link rel="stylesheet" href="/css/admin-metrics-style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header>
+  <h1>Recommendation System</h1>
+</header>
+<div class="container">
+  <nav class="nav">
+    <a href="/admin">Главная</a>
+    <a href="/admin/settings">Настройки алгоритмов</a>
+    <a href="/admin/schema">Настроить схему</a>
+    <a href="/admin/import">Импорт данных</a>
+    <a href="/admin/metrics">Метрики</a>
+    <a href="/admin/cache">Кэш</a>
+  </nav>
+
+  <h2>Метрики рекомендательной системы: <span th:text="${name}"></span></h2>
+  <div style="margin-bottom: 20px;">
+    <form th:action="@{/admin/metrics/recalculate}" method="post">
+      <button type="submit" class="recalculate-btn">Перерасчитать метрики</button>
+    </form>
+  </div>
+  <div class="chart-container" th:each="metric : ${metrics}">
+    <div class="chart-title" th:text="${metric.key}"></div>
+    <canvas th:id="${'chart-' + metric.key}"></canvas>
+  </div>
+</div>
+
+<script th:inline="javascript">
+  let metricsData = /*[[${metrics}]]*/ {};
+  let colors = [
+    'rgba(255, 99, 132, 1)',
+    'rgba(54, 162, 235, 1)',
+    'rgba(255, 206, 86, 1)',
+    'rgba(75, 192, 192, 1)',
+    'rgba(153, 102, 255, 1)',
+    'rgba(255, 159, 64, 1)',
+    'rgba(199, 199, 199, 1)'
+  ];
+
+  let index = 0;
+
+  Object.keys(metricsData).forEach(metric => {
+    let dataPoints = metricsData[metric];
+    let labels = Object.keys(dataPoints).sort((a, b) => a - b);
+    let values = labels.map(key => dataPoints[key]);
+
+    let ctx = document.getElementById('chart-' + metric).getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: metric,
+          data: values,
+          borderColor: colors[index % colors.length],
+          backgroundColor: colors[index % colors.length].replace('1)', '0.2)'),
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Количество рекомендаций'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: metric
+            }
+          }
+        }
+      }
+    });
+    index++;
+  });
+</script>
+
+</body>
+</html>
