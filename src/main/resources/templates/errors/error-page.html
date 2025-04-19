@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Произошла ошибка</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .error-code { font-size: 96px; font-weight: bold; color: #e74c3c; }
+        .message { font-size: 24px; margin-bottom: 20px; }
+        .details { color: #888; }
+    </style>
+</head>
+<body>
+<div class="error-code" th:text="${status}">Ошибка</div>
+<div class="message" th:text="${error}">Что-то пошло не так...</div>
+<div class="details" th:text="${message}">Попробуйте позже или свяжитесь с поддержкой.</div>
+</body>
+</html>
