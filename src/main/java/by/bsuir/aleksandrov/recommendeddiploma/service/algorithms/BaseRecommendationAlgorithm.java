@@ -50,7 +50,7 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
 
                 List<String> recommendations;
                 try {
-                    recommendations = generateRecommendations(user.getUserId(), limit, 0, false, settings);
+                    recommendations = generateRecommendations(user.getUserId(), limit, 0, false, settings, false);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -119,7 +119,7 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
         double personalization = numPairs == 0 ? 0 : personalizationSum / numPairs;
 
         Map<String, Double> result = new HashMap<>();
-        result.put("personalization", personalization);
+        result.put("personalization", personalization / 2);
         result.put("precision", precision);
         result.put("recall", recall);
         result.put("f1Score", f1Score);
@@ -143,5 +143,5 @@ public abstract class BaseRecommendationAlgorithm implements RecommendationAlgor
     }
 
     public abstract List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
-                                                         RecommendationSettings settings) throws Exception;
+                                                         RecommendationSettings settings, boolean useCache) throws Exception;
 }

@@ -5,6 +5,7 @@
   <title>Метрики</title>
   <link rel="stylesheet" href="/css/admin-metrics-style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
 </head>
 <body>
 <header>
@@ -20,69 +21,174 @@
     <a href="/admin/cache">Кэш</a>
   </nav>
 
-  <h2>Метрики рекомендательной системы: <span th:text="${name}"></span></h2>
+  <h2>
+    Метрики рекомендательной системы:
+    <span th:text="${name}"></span>
+  </h2>
+
   <div style="margin-bottom: 20px;">
     <form th:action="@{/admin/metrics/recalculate}" method="post">
       <button type="submit" class="recalculate-btn">Перерасчитать метрики</button>
     </form>
   </div>
-  <div class="chart-container" th:each="metric : ${metrics}">
-    <div class="chart-title" th:text="${metric.key}"></div>
-    <canvas th:id="${'chart-' + metric.key}"></canvas>
+
+  <div class="chart-container" style="height: 600px;">
+    <canvas id="allMetricsChart" height="600"></canvas>
+  </div>
+
+  <!-- Показ оптимального параметра -->
+  <div th:if="${optimalParam != null}" style="margin-top: 20px;">
+    <h3>Оптимальное значение параметра: <span th:text="${optimalParam}"></span></h3>
+  </div>
+
+  <!-- Описание метрик -->
+  <div class="metrics-description">
+    <h3>Описание метрик</h3>
+    <ul>
+      <li><strong>Precision</strong> — доля рекомендованных объектов, которые действительно понравились пользователю.</li>
+      <li><strong>Recall</strong> — доля понравившихся объектов, которые были рекомендованы.</li>
+      <li><strong>F1 Score</strong> — гармоническое среднее между Precision и Recall.</li>
+      <li><strong>nDCG</strong> — нормализованная Discounted Cumulative Gain: учитывает порядок релевантных рекомендаций.</li>
+      <li><strong>Hit Rate</strong> — частота, с которой релевантные элементы появляются в списке рекомендаций.</li>
+      <li><strong>Coverage</strong> — доля элементов, которые вообще были рекомендованы.</li>
+      <li><strong>Personalization</strong> — степень различия рекомендаций для разных пользователей.</li>
+    </ul>
+  </div>
+
+  <!-- Панель автоматического расчета -->
+  <div class="auto-weight-panel">
+    <h3>Задать значимость метрик</h3>
+    <form th:action="@{/admin/metrics/auto-weight}" method="post" class="weight-form">
+      <div class="weight-input">
+        <label>Precision:</label>
+        <input type="number" name="weights[precision]" min="0" max="1" step="0.01" value="0.2" required>
+      </div>
+      <div class="weight-input">
+        <label>Recall:</label>
+        <input type="number" name="weights[recall]" min="0" max="1" step="0.01" value="0.2" required>
+      </div>
+      <div class="weight-input">
+        <label>F1 Score:</label>
+        <input type="number" name="weights[f1Score]" min="0" max="1" step="0.01" value="0.2" required>
+      </div>
+      <div class="weight-input">
+        <label>nDCG:</label>
+        <input type="number" name="weights[ndcg]" min="0" max="1" step="0.01" value="0.15" required>
+      </div>
+      <div class="weight-input">
+        <label>Hit Rate:</label>
+        <input type="number" name="weights[hitRate]" min="0" max="1" step="0.01" value="0.1" required>
+      </div>
+      <div class="weight-input">
+        <label>Coverage:</label>
+        <input type="number" name="weights[coverage]" min="0" max="1" step="0.01" value="0.1" required>
+      </div>
+      <div class="weight-input">
+        <label>Personalization:</label>
+        <input type="number" name="weights[personalization]" min="0" max="1" step="0.01" value="0.05" required>
+      </div>
+      <button type="submit" class="recalculate-btn">Рассчитать оптимальный параметр</button>
+    </form>
   </div>
 </div>
 
 <script th:inline="javascript">
-  let metricsData = /*[[${metrics}]]*/ {};
-  let colors = [
+  const metricsData = /*[[${metrics}]]*/ {};
+  const xAxisName = /*[[${xAxisName}]]*/ 'Параметр';
+  const algorithmName = /*[[${name}]]*/ 'Алгоритм';
+  const optimalParam = /*[[${optimalParam}]]*/ null;
+
+  const colors = [
     'rgba(255, 99, 132, 1)',
     'rgba(54, 162, 235, 1)',
     'rgba(255, 206, 86, 1)',
     'rgba(75, 192, 192, 1)',
     'rgba(153, 102, 255, 1)',
     'rgba(255, 159, 64, 1)',
-    'rgba(199, 199, 199, 1)'
+    'rgba(99, 255, 132, 1)'
   ];
 
-  let index = 0;
+  const ctx = document.getElementById('allMetricsChart').getContext('2d');
+  const allLabels = Object.keys(metricsData[Object.keys(metricsData)[0]]).sort((a, b) => a - b);
 
-  Object.keys(metricsData).forEach(metric => {
-    let dataPoints = metricsData[metric];
-    let labels = Object.keys(dataPoints).sort((a, b) => a - b);
-    let values = labels.map(key => dataPoints[key]);
+  const datasets = Object.entries(metricsData).map(([metric, values], index) => {
+    const sortedKeys = Object.keys(values).sort((a, b) => a - b);
+    const data = sortedKeys.map(key => values[key] * 100); // Проценты
 
-    let ctx = document.getElementById('chart-' + metric).getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: metric,
-          data: values,
-          borderColor: colors[index % colors.length],
-          backgroundColor: colors[index % colors.length].replace('1)', '0.2)'),
-          fill: true
-        }]
+    return {
+      label: metric,
+      data: data,
+      borderColor: colors[index % colors.length],
+      backgroundColor: colors[index % colors.length].replace('1)', '0.2)'),
+      fill: false,
+      tension: 0.3
+    };
+  });
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: allLabels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 14 } }
+        },
+        title: {
+          display: true,
+          text: `Метрики алгоритма "${algorithmName}" в зависимости от параметра "${xAxisName}"`,
+          font: { size: 18 }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        },
+        annotation: {
+          annotations: optimalParam !== null ? {
+            optimalLine: {
+              type: 'line',
+              scaleID: 'x',
+              value: optimalParam.toString(),
+              borderColor: 'red',
+              borderWidth: 2,
+              borderDash: [6, 6],
+              label: {
+                content: `Оптимум: ${optimalParam}`,
+                enabled: true,
+                position: 'start',
+                backgroundColor: 'rgba(255,0,0,0.7)',
+                color: 'white',
+                font: { weight: 'bold' }
+              }
+            }
+          } : {}
+        }
       },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Количество рекомендаций'
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: metric
-            }
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: xAxisName,
+            font: { size: 14 }
           }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Значение метрик (%)',
+            font: { size: 14 }
+          },
+          beginAtZero: true,
+          max: 100
         }
       }
-    });
-    index++;
+    },
+    plugins: [Chart.registry.getPlugin('annotation')]
   });
 </script>
 

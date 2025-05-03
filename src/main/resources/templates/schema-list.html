@@ -16,13 +16,11 @@
 
     <table>
         <tr>
-            <th>ID</th>
             <th>Тип</th>
             <th>Поля и веса</th>
             <th>Действия</th>
         </tr>
         <tr th:each="schema : ${schemas}">
-            <td th:text="${schema.id}"></td>
             <td th:text="${schema.entityType}"></td>
             <td>
                 <ul>

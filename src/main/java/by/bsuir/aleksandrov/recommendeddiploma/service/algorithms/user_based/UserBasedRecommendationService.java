@@ -33,14 +33,14 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
 
     @Override
     public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
-                                                RecommendationSettings settings) throws Exception {
+                                                RecommendationSettings settings, boolean useCache) throws Exception {
         String cacheKey = redisService.generateKey(userId, limit, offset, filtering, "user-based");
-
-        List<String> cached = redisService.getCachedRecommendations(cacheKey);
-        if (cached != null) {
-            return cached;
+        if (useCache) {
+            List<String> cached = redisService.getCachedRecommendations(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
         }
-
         List<RecommendedItem> recommendedItems = calculateRecommendations(userId, limit, filtering,
                 Integer.parseInt(settings.getParameters().get("numNeighbors").toString()));
         List<String> recommendations = new ArrayList<>();
@@ -48,8 +48,9 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
         for (RecommendedItem item : recommendedItems) {
             recommendations.add(String.valueOf(item.getItemID()));
         }
-
-        redisService.cacheRecommendations(cacheKey, recommendations, 1800);
+        if (useCache) {
+            redisService.cacheRecommendations(cacheKey, recommendations, 1800);
+        }
         return recommendations;
     }
 

@@ -8,7 +8,7 @@ import java.util.Map;
 public interface RecommendationAlgorithm {
     boolean supports(String algorithmType);
     List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
-                                         RecommendationSettings settings) throws Exception;
+                                         RecommendationSettings settings, boolean useCache) throws Exception;
     Map<String, Double> evaluateModel(int limit, RecommendationSettings settings) throws Exception;
     String retrainModel() throws Exception;
 }

@@ -43,8 +43,8 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
 
     @Override
     public List<String> generateRecommendations(String userId, int limit, int offset, boolean filtering,
-                                                RecommendationSettings settings) throws Exception {
-        List<RecommendedItem> recommendedItems = recommend(userId, limit, filtering, settings);
+                                                RecommendationSettings settings, boolean useCache) throws Exception {
+        List<RecommendedItem> recommendedItems = recommend(userId, limit, filtering, settings, useCache);
         List<String> recommendations = new ArrayList<>();
 
         for (RecommendedItem item : recommendedItems) {
@@ -55,8 +55,8 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
     }
 
     public List<RecommendedItem> recommend(String userId, int limit, boolean filtering,
-                                           RecommendationSettings settings) throws Exception {
-        Recommender recommender = loadOrTrainRecommender(settings);
+                                           RecommendationSettings settings, boolean useCache) throws Exception {
+        Recommender recommender = loadOrTrainRecommender(settings, useCache);
 
         // Поддержка фильтрации через cast
         if (recommender instanceof CustomSVDRecommender) {
@@ -68,28 +68,28 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         }
     }
 
-    private Recommender loadOrTrainRecommender(RecommendationSettings settings) throws Exception {
+    private Recommender loadOrTrainRecommender(RecommendationSettings settings, boolean useCache) throws Exception {
         dataModel = dataLoader.getDataModel();
 
         Factorization factorization;
 
-        if (redisService.exists(SVD_MODEL_KEY)) {
+        if (redisService.exists(SVD_MODEL_KEY) && useCache) {
             factorization = loadFactorizationFromRedis();
         } else {
-            factorization = trainAndCacheFactorization(dataModel, settings);
+            factorization = trainAndCacheFactorization(dataModel, settings, useCache);
         }
 
         return new CustomSVDRecommender(dataModel, factorization);
     }
 
     private Factorization trainAndCacheFactorization(DataModel dataModel,
-                                                     RecommendationSettings settings) throws Exception {
+                                                     RecommendationSettings settings, boolean useCache) throws Exception {
         int numFeatures = Integer.parseInt(settings.getParameters().get("numFeatures").toString());
-        int numIterations = Integer.parseInt(settings.getParameters().get("numIterations").toString());
-        Factorizer factorizer = new ALSWRFactorizer(dataModel, numFeatures, 0.05, numIterations);
+        Factorizer factorizer = new ALSWRFactorizer(dataModel, numFeatures, 0.05, 5);
         Factorization factorization = factorizer.factorize();
-
-        saveFactorizationToRedis(factorization);
+        if (useCache) {
+            saveFactorizationToRedis(factorization);
+        }
         return factorization;
     }
 
@@ -99,7 +99,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
                 .orElseThrow(() -> new RuntimeException("Настройки рекомендаций не найдены"));
         redisService.deleteModel(SVD_MODEL_KEY);
         redisService.evictRecommendationsByAlgorithm("svd");
-        trainAndCacheFactorization(dataLoader.getDataModel(), settings);
+        trainAndCacheFactorization(dataLoader.getDataModel(), settings, true);
         return "Retrain successfully";
     }
 
