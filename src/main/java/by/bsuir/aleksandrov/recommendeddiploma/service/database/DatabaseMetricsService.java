@@ -52,7 +52,7 @@ public class DatabaseMetricsService {
 
 
     // Преобразуем метку времени в человекочитаемый формат
-    private String convertTimestampToReadable(long timestamp) {
+    public String convertTimestampToReadable(long timestamp) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(new Date(timestamp));
     }

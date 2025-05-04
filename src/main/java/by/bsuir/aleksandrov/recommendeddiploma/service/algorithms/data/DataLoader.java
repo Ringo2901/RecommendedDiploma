@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class DataLoader {
     @Autowired
-    private UserRepository userRepository;
+    public UserRepository userRepository;
 
     @Getter
     private volatile DataModel dataModel;
@@ -30,7 +30,7 @@ public class DataLoader {
         }
     }
 
-    private DataModel loadUserDataModel() throws Exception {
+    public DataModel loadUserDataModel() throws Exception {
         File file = new File("user_preferences.csv");
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -50,7 +50,7 @@ public class DataLoader {
         return new FileDataModel(file);
     }
 
-    private String sanitizeId(String id) {
+    public String sanitizeId(String id) {
         return isNumeric(id) ? id : id.substring(1);
     }
 

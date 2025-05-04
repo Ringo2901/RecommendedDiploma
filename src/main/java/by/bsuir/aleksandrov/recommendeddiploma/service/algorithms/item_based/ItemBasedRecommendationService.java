@@ -21,9 +21,9 @@ import java.util.List;
 @Service
 public class ItemBasedRecommendationService extends BaseRecommendationAlgorithm {
     @Autowired
-    private DataLoader dataLoader;
+    public DataLoader dataLoader;
     @Autowired
-    private RedisService redisService;
+    public RedisService redisService;
     private DataModel dataModel;
 
     @Override

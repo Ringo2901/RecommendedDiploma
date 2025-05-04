@@ -68,7 +68,7 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         }
     }
 
-    private Recommender loadOrTrainRecommender(RecommendationSettings settings, boolean useCache) throws Exception {
+    public Recommender loadOrTrainRecommender(RecommendationSettings settings, boolean useCache) throws Exception {
         dataModel = dataLoader.getDataModel();
 
         Factorization factorization;
@@ -82,8 +82,8 @@ public class SVDRecommendationService extends BaseRecommendationAlgorithm {
         return new CustomSVDRecommender(dataModel, factorization);
     }
 
-    private Factorization trainAndCacheFactorization(DataModel dataModel,
-                                                     RecommendationSettings settings, boolean useCache) throws Exception {
+    public Factorization trainAndCacheFactorization(DataModel dataModel,
+                                                    RecommendationSettings settings, boolean useCache) throws Exception {
         int numFeatures = Integer.parseInt(settings.getParameters().get("numFeatures").toString());
         Factorizer factorizer = new ALSWRFactorizer(dataModel, numFeatures, 0.05, 5);
         Factorization factorization = factorizer.factorize();

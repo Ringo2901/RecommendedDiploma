@@ -54,8 +54,8 @@ public class UserBasedRecommendationService extends BaseRecommendationAlgorithm 
         return recommendations;
     }
 
-    private List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering,
-                                                           Integer numNeighborhood) throws Exception {
+    public List<RecommendedItem> calculateRecommendations(String userId, int limit, boolean filtering,
+                                                          Integer numNeighborhood) throws Exception {
         if (dataModel == null) {
             dataModel = dataLoader.getDataModel();
         }

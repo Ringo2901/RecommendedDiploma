@@ -44,7 +44,7 @@ public class AdminController {
         return mongoTemplate.findAll(DatabaseMetrics.class, "dbMetrics");
     }
 
-    private void deleteOldMetrics() {
+    public void deleteOldMetrics() {
         long currentTime = System.currentTimeMillis();
         long oneHoursAgo = currentTime - 60 * 60 * 1000;
 
@@ -200,7 +200,7 @@ public class AdminController {
     }
 
 
-    private void setXAxisName(Model model, RecommendationSettings settings) {
+    public void setXAxisName(Model model, RecommendationSettings settings) {
         switch (settings.getAlgorithm()) {
             case USER_BASED:
                 model.addAttribute("xAxisName", "Число соседей");
@@ -219,7 +219,7 @@ public class AdminController {
     }
 
 
-    private Map<String, Map<Integer, Double>> calculateMetrics(RecommendationSettings settings) throws Exception {
+    public Map<String, Map<Integer, Double>> calculateMetrics(RecommendationSettings settings) throws Exception {
         int min = 10;
         int max = 110;
         int step = 20;
@@ -237,7 +237,7 @@ public class AdminController {
                 break;
             case SVD:
                 min = 20;
-                max = 200;
+                max = 100;
                 varyingParam = "numFeatures";
                 break;
             case TF_IDF:

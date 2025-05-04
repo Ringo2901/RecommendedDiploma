@@ -24,7 +24,7 @@ public class Tf_IDF_RecommendationAlgorithm extends BaseRecommendationAlgorithm 
     private ProductSimilarityCalculator productSimilarityCalculator;
     private final SchemaRepository schemaRepository;
     @Autowired
-    private RedisService redisService;
+    public RedisService redisService;
 
     public Tf_IDF_RecommendationAlgorithm(SchemaRepository schemaRepository, ItemRepository itemRepository, UserRepository userRepository) throws IOException {
         this.itemRepository = itemRepository;

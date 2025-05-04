@@ -19,6 +19,8 @@ public class Item {
         this.data = data;
     }
 
+    public Item() {}
+
     public String toText(List<SchemaField> fields){
         StringBuilder result = new StringBuilder();
         for (SchemaField schemaField : fields) {

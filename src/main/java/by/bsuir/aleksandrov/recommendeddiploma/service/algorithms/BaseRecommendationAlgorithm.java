@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class BaseRecommendationAlgorithm implements RecommendationAlgorithm {
 
     @Autowired
-    protected UserRepository userRepository;
+    public UserRepository userRepository;
     @Autowired
-    protected ItemRepository itemRepository;
+    public ItemRepository itemRepository;
 
     @Override
     public Map<String, Double> evaluateModel(int limit, RecommendationSettings settings) {
